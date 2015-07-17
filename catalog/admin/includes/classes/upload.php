@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: upload.php,v 1.2 2003/06/20 00:18:30 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -139,7 +139,7 @@
     function check_destination() {
       global $messageStack;
 
-      if (!is_writeable($this->destination)) {
+      if (!tep_is_writable($this->destination)) {
         if (is_dir($this->destination)) {
           if ($this->message_location == 'direct') {
             $messageStack->add(sprintf(ERROR_DESTINATION_NOT_WRITEABLE, $this->destination), 'error');

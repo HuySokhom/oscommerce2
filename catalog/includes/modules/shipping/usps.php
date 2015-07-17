@@ -1,13 +1,16 @@
 <?php
 /*
-  $Id: usps.php,v 1.47 2003/04/08 23:23:42 dgw_ Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
 
-  Copyright (c) 2003 osCommerce
+  Copyright (c) 2008 osCommerce
 
   Released under the GNU General Public License
+
+  Based on USPS Methods 26-Feb-2010
+  http://addons.oscommerce.com/info/487
 */
 
   class usps {
@@ -43,21 +46,36 @@
         }
       }
 
-      $this->types = array('Express' => 'Express Mail',
-                           'First Class' => 'First-Class Mail',
-                           'Priority' => 'Priority Mail',
-                           'Parcel' => 'Parcel Post');
-
-      $this->intl_types = array('GXG Document' => 'Global Express Guaranteed Document Service',
-                                'GXG Non-Document' => 'Global Express Guaranteed Non-Document Service',
-                                'Express' => 'Global Express Mail (EMS)',
-                                'Priority Lg' => 'Global Priority Mail - Flat-rate Envelope (large)',
-                                'Priority Sm' => 'Global Priority Mail - Flat-rate Envelope (small)',
-                                'Priority Var' => 'Global Priority Mail - Variable Weight Envelope (single)',
-                                'Airmail Letter' => 'Airmail Letter Post',
-                                'Airmail Parcel' => 'Airmail Parcel Post',
-                                'Surface Letter' => 'Economy (Surface) Letter Post',
-                                'Surface Post' => 'Economy (Surface) Parcel Post');
+      $this->types = array(
+// Domestic Types
+                           'Express Mail',
+                           'Express Mail Flat Rate Envelope',
+                           'Priority Mail',
+                           'Priority Mail Flat Rate Envelope',
+                           'Priority Mail Small Flat Rate Box',
+                           'Priority Mail Medium Flat Rate Box',
+                           'Priority Mail Large Flat Rate Box',
+                           'First-Class Mail Flat',
+                           'First-Class Mail Parcel',
+                           'Parcel Post',
+                           'Bound Printed Matter',
+                           'Media Mail',
+                           'Library Mail',
+// International Types
+                           'Global Express Guaranteed (GXG)',
+                           'Global Express Guaranteed Non-Document Rectangular',
+                           'Global Express Guaranteed Non-Document Non-Rectangular',
+                           'USPS GXG Envelopes',
+                           'Express Mail International',
+                           'Express Mail International Flat Rate Envelope',
+                           'Priority Mail International',
+                           'Priority Mail International Large Flat Rate Box',
+                           'Priority Mail International Medium Flat Rate Box',
+                           'Priority Mail International Small Flat Rate Box',
+                           'Priority Mail International Flat Rate Envelope',
+                           'First-Class Mail International Package',
+                           'First-Class Mail International Large Envelope'
+                          );
 
       $this->countries = $this->country_list();
     }
@@ -66,9 +84,9 @@
     function quote($method = '') {
       global $order, $shipping_weight, $shipping_num_boxes;
 
-      if ( tep_not_null($method) && (isset($this->types[$method]) || in_array($method, $this->intl_types)) ) {
-        $this->_setService($method);
-      }
+      // if ( tep_not_null($method) && in_array($method, $this->types)) {
+      //   $this->_setService($method);
+      // }
 
       $this->_setMachinable('False');
       $this->_setContainer('None');
@@ -79,9 +97,7 @@
       $shipping_pounds = floor ($shipping_weight);
       $shipping_ounces = round(16 * ($shipping_weight - floor($shipping_weight)));
       $this->_setWeight($shipping_pounds, $shipping_ounces);
-
       $uspsQuote = $this->_getQuote();
-
       if (is_array($uspsQuote)) {
         if (isset($uspsQuote['error'])) {
           $this->quotes = array('module' => $this->title,
@@ -95,9 +111,14 @@
           for ($i=0; $i<$size; $i++) {
             list($type, $cost) = each($uspsQuote[$i]);
 
-            $methods[] = array('id' => $type,
-                               'title' => ((isset($this->types[$type])) ? $this->types[$type] : $type),
+// echo "USPS $type @ $cost<br />";
+	    if (($method == '' && in_array($type, $this->types)) || $method == $type) {
+	       if (strpos($type, "Flat Rate")) $type_flat = $type . ', subject to verification';
+	       else $type_flat = $type;
+               $methods[] = array('id' => $type,
+                               'title' => $type_flat,
                                'cost' => ($cost + MODULE_SHIPPING_USPS_HANDLING) * $shipping_num_boxes);
+            }
           }
 
           $this->quotes['methods'] = $methods;
@@ -128,7 +149,6 @@
       tep_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values ('Enable USPS Shipping', 'MODULE_SHIPPING_USPS_STATUS', 'True', 'Do you want to offer USPS shipping?', '6', '0', 'tep_cfg_select_option(array(\'True\', \'False\'), ', now())");
       tep_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Enter the USPS User ID', 'MODULE_SHIPPING_USPS_USERID', 'NONE', 'Enter the USPS USERID assigned to you.', '6', '0', now())");
       tep_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Enter the USPS Password', 'MODULE_SHIPPING_USPS_PASSWORD', 'NONE', 'See USERID, above.', '6', '0', now())");
-      tep_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values ('Which server to use', 'MODULE_SHIPPING_USPS_SERVER', 'production', 'An account at USPS is needed to use the Production server', '6', '0', 'tep_cfg_select_option(array(\'test\', \'production\'), ', now())");
       tep_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Handling Fee', 'MODULE_SHIPPING_USPS_HANDLING', '0', 'Handling fee for this shipping method.', '6', '0', now())");
       tep_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, use_function, set_function, date_added) values ('Tax Class', 'MODULE_SHIPPING_USPS_TAX_CLASS', '0', 'Use the following tax class on the shipping fee.', '6', '0', 'tep_get_tax_class_title', 'tep_cfg_pull_down_tax_classes(', now())");
       tep_db_query("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, use_function, set_function, date_added) values ('Shipping Zone', 'MODULE_SHIPPING_USPS_ZONE', '0', 'If a zone is selected, only enable this shipping method for that zone.', '6', '0', 'tep_get_zone_class_title', 'tep_cfg_pull_down_zone_classes(', now())");
@@ -140,7 +160,7 @@
     }
 
     function keys() {
-      return array('MODULE_SHIPPING_USPS_STATUS', 'MODULE_SHIPPING_USPS_USERID', 'MODULE_SHIPPING_USPS_PASSWORD', 'MODULE_SHIPPING_USPS_SERVER', 'MODULE_SHIPPING_USPS_HANDLING', 'MODULE_SHIPPING_USPS_TAX_CLASS', 'MODULE_SHIPPING_USPS_ZONE', 'MODULE_SHIPPING_USPS_SORT_ORDER');
+      return array('MODULE_SHIPPING_USPS_STATUS', 'MODULE_SHIPPING_USPS_USERID', 'MODULE_SHIPPING_USPS_PASSWORD', 'MODULE_SHIPPING_USPS_HANDLING', 'MODULE_SHIPPING_USPS_TAX_CLASS', 'MODULE_SHIPPING_USPS_ZONE', 'MODULE_SHIPPING_USPS_SORT_ORDER');
     }
 
     function _setService($service) {
@@ -168,39 +188,29 @@
       global $order;
 
       if ($order->delivery['country']['id'] == SHIPPING_ORIGIN_COUNTRY) {
-        $request  = '<RateRequest USERID="' . MODULE_SHIPPING_USPS_USERID . '" PASSWORD="' . MODULE_SHIPPING_USPS_PASSWORD . '">';
-        $services_count = 0;
-
-        if (isset($this->service)) {
-          $this->types = array($this->service => $this->types[$this->service]);
-        }
-
         $dest_zip = str_replace(' ', '', $order->delivery['postcode']);
         if ($order->delivery['country']['iso_code_2'] == 'US') $dest_zip = substr($dest_zip, 0, 5);
-
-        reset($this->types);
-        while (list($key, $value) = each($this->types)) {
-          $request .= '<Package ID="' . $services_count . '">' .
-                      '<Service>' . $key . '</Service>' .
-                      '<ZipOrigination>' . SHIPPING_ORIGIN_ZIP . '</ZipOrigination>' .
-                      '<ZipDestination>' . $dest_zip . '</ZipDestination>' .
-                      '<Pounds>' . $this->pounds . '</Pounds>' .
-                      '<Ounces>' . $this->ounces . '</Ounces>' .
-                      '<Container>' . $this->container . '</Container>' .
-                      '<Size>' . $this->size . '</Size>' .
-                      '<Machinable>' . $this->machinable . '</Machinable>' .
-                      '</Package>';
-          $services_count++;
-        }
-        $request .= '</RateRequest>';
-
-        $request = 'API=Rate&XML=' . urlencode($request);
+	$request = '<RateV3Request USERID="' . MODULE_SHIPPING_USPS_USERID . '">' .
+	    '<Package ID="0">' .
+	      '<Service>' . 'ALL' . '</Service>' .
+              '<ZipOrigination>' . SHIPPING_ORIGIN_ZIP . '</ZipOrigination>' .
+              '<ZipDestination>' . $dest_zip . '</ZipDestination>' .
+	      '<Pounds>' . $this->pounds . '</Pounds>' .
+	      '<Ounces>' . $this->ounces . '</Ounces>' .
+	      '<Container/><Size>Regular</Size><Machinable>True</Machinable>' .
+	    '</Package></RateV3Request>';
+        $request = 'API=RateV3&XML=' . urlencode($request);
       } else {
-        $request  = '<IntlRateRequest USERID="' . MODULE_SHIPPING_USPS_USERID . '" PASSWORD="' . MODULE_SHIPPING_USPS_PASSWORD . '">' .
+        $request  = '<IntlRateRequest USERID="' . MODULE_SHIPPING_USPS_USERID . '">' .
                     '<Package ID="0">' .
                     '<Pounds>' . $this->pounds . '</Pounds>' .
                     '<Ounces>' . $this->ounces . '</Ounces>' .
                     '<MailType>Package</MailType>' .
+		    '<GXG>' .
+		    '<Length>12</Length><Width>12</Width><Height>12</Height>' .
+		    '<POBoxFlag>N</POBoxFlag><GiftFlag>N</GiftFlag>' .
+		    '</GXG>' .
+		    '<ValueOfContents>50</ValueOfContents>' .
                     '<Country>' . $this->countries[$order->delivery['country']['iso_code_2']] . '</Country>' .
                     '</Package>' .
                     '</IntlRateRequest>';
@@ -208,31 +218,23 @@
         $request = 'API=IntlRate&XML=' . urlencode($request);
       }
 
-      switch (MODULE_SHIPPING_USPS_SERVER) {
-        case 'production': $usps_server = 'production.shippingapis.com';
-                           $api_dll = 'shippingapi.dll';
-                           break;
-        case 'test':
-        default:           $usps_server = 'testing.shippingapis.com';
-                           $api_dll = 'ShippingAPITest.dll';
-                           break;
-      }
-
       $body = '';
 
+      if (!class_exists('httpClient')) {
+        include('includes/classes/http_client.php');
+      }
+
       $http = new httpClient();
-      if ($http->Connect($usps_server, 80)) {
-        $http->addHeader('Host', $usps_server);
+      if ($http->Connect('production.shippingapis.com', 80)) {
+        $http->addHeader('Host', 'production.shippingapis.com');
         $http->addHeader('User-Agent', 'osCommerce');
         $http->addHeader('Connection', 'Close');
-
-        if ($http->Get('/' . $api_dll . '?' . $request)) $body = $http->getBody();
+        if ($http->Get('/shippingapi.dll?' . $request)) $body = $http->getBody();
 
         $http->Disconnect();
       } else {
         return false;
       }
-
       $response = array();
       while (true) {
         if ($start = strpos($body, '<Package ID=')) {
@@ -244,14 +246,13 @@
           break;
         }
       }
-
       $rates = array();
       if ($order->delivery['country']['id'] == SHIPPING_ORIGIN_COUNTRY) {
         if (sizeof($response) == '1') {
-          if (ereg('<Error>', $response[0])) {
-            $number = ereg('<Number>(.*)</Number>', $response[0], $regs);
+          if (preg_match('/<Error>/', $response[0])) {
+            $number = preg_match('/<Number>(.*)<\/Number>/', $response[0], $regs);
             $number = $regs[1];
-            $description = ereg('<Description>(.*)</Description>', $response[0], $regs);
+            $description = preg_match('/<Description>(.*)<\/Description>/', $response[0], $regs);
             $description = $regs[1];
 
             return array('error' => $number . ' - ' . $description);
@@ -260,20 +261,27 @@
 
         $n = sizeof($response);
         for ($i=0; $i<$n; $i++) {
-          if (strpos($response[$i], '<Postage>')) {
-            $service = ereg('<Service>(.*)</Service>', $response[$i], $regs);
+	  $resp = $response[$i];
+	  $pos = 0;
+	  while (1) {
+	    $pos = strpos($response[$i], '<Postage', $pos);
+            if ($pos === FALSE) break;
+	    $end = strpos($response[$i], '</Postage>', $pos);
+	    if ($end === FALSE) break;
+	    $resp = substr($response[$i], $pos, $end-$pos);
+            $service = preg_match('/<MailService>(.*)<\/MailService>/', $resp, $regs);
             $service = $regs[1];
-            $postage = ereg('<Postage>(.*)</Postage>', $response[$i], $regs);
+            $postage = preg_match('/<Rate>(.*)<\/Rate>/', $resp, $regs);
             $postage = $regs[1];
-
+	    $pos = $end;
             $rates[] = array($service => $postage);
           }
         }
       } else {
-        if (ereg('<Error>', $response[0])) {
-          $number = ereg('<Number>(.*)</Number>', $response[0], $regs);
+        if (preg_match('/<Error>/', $response[0])) {
+          $number = preg_match('/<Number>(.*)<\/Number>/', $response[0], $regs);
           $number = $regs[1];
-          $description = ereg('<Description>(.*)</Description>', $response[0], $regs);
+          $description = preg_match('/<Description>(.*)<\/Description>/', $response[0], $regs);
           $description = $regs[1];
 
           return array('error' => $number . ' - ' . $description);
@@ -294,9 +302,9 @@
           $size = sizeof($services);
           for ($i=0, $n=$size; $i<$n; $i++) {
             if (strpos($services[$i], '<Postage>')) {
-              $service = ereg('<SvcDescription>(.*)</SvcDescription>', $services[$i], $regs);
+              $service = preg_match('/<SvcDescription>(.*)<\/SvcDescription>/', $services[$i], $regs);
               $service = $regs[1];
-              $postage = ereg('<Postage>(.*)</Postage>', $services[$i], $regs);
+              $postage = preg_match('/<Postage>(.*)<\/Postage>/', $services[$i], $regs);
               $postage = $regs[1];
 
               if (isset($this->service) && ($service != $this->service) ) {

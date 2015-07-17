@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: currencies.php,v 1.12 2003/06/25 20:36:48 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -18,6 +18,7 @@ define('TABLE_HEADING_CURRENCY_VALUE', 'Value');
 define('TABLE_HEADING_ACTION', 'Action');
 
 define('TEXT_INFO_EDIT_INTRO', 'Please make any necessary changes');
+define('TEXT_INFO_COMMON_CURRENCIES', '-- Common Currencies --');
 define('TEXT_INFO_CURRENCY_TITLE', 'Title:');
 define('TEXT_INFO_CURRENCY_CODE', 'Code:');
 define('TEXT_INFO_CURRENCY_SYMBOL_LEFT', 'Symbol Left:');

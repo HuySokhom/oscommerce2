@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: split_page_results.php,v 1.15 2003/06/09 22:35:34 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -95,7 +95,7 @@
 // page nn button
       for ($jump_to_page = 1 + (($cur_window_num - 1) * $max_page_links); ($jump_to_page <= ($cur_window_num * $max_page_links)) && ($jump_to_page <= $this->number_of_pages); $jump_to_page++) {
         if ($jump_to_page == $this->current_page_number) {
-          $display_links_string .= '&nbsp;<b>' . $jump_to_page . '</b>&nbsp;';
+          $display_links_string .= '&nbsp;<strong>' . $jump_to_page . '</strong>&nbsp;';
         } else {
           $display_links_string .= '&nbsp;<a href="' . tep_href_link(basename($PHP_SELF), $parameters . $this->page_name . '=' . $jump_to_page, $request_type) . '" class="pageResults" title=" ' . sprintf(PREVNEXT_TITLE_PAGE_NO, $jump_to_page) . ' "><u>' . $jump_to_page . '</u></a>&nbsp;';
         }

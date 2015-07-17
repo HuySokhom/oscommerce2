@@ -1,11 +1,11 @@
 <?php
 /*
-  $Id: $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
 
-  Copyright (c) 2007 osCommerce
+  Copyright (c) 2008 osCommerce
 
   Released under the GNU General Public License
 */
@@ -21,35 +21,33 @@
     exit('Server Requirement Error: register_globals is disabled in your PHP configuration. This can be enabled in your php.ini configuration file or in the .htaccess file in your catalog directory. Please use PHP 4.3+ if register_globals cannot be enabled on the server.');
   }
 
-// Set the local configuration parameters - mainly for developers
-  if (file_exists('includes/local/configure.php')) include('includes/local/configure.php');
+// load server configuration parameters
+  if (file_exists('includes/local/configure.php')) { // for developers
+    include('includes/local/configure.php');
+  } else {
+    include('includes/configure.php');
+  }
 
-// Include application configuration parameters
-  require('includes/configure.php');
-
-// Define the project version
-  define('PROJECT_VERSION', 'osCommerce Online Merchant v2.2 RC1');
+// Define the project version --- obsolete, now retrieved with tep_get_version()
+  define('PROJECT_VERSION', 'osCommerce Online Merchant v2.3');
 
 // some code to solve compatibility issues
   require(DIR_WS_FUNCTIONS . 'compatibility.php');
 
 // set php_self in the local scope
-  $PHP_SELF = (isset($HTTP_SERVER_VARS['PHP_SELF']) ? $HTTP_SERVER_VARS['PHP_SELF'] : $HTTP_SERVER_VARS['SCRIPT_NAME']);
+  $PHP_SELF = (((strlen(ini_get('cgi.fix_pathinfo')) > 0) && ((bool)ini_get('cgi.fix_pathinfo') == false)) || !isset($HTTP_SERVER_VARS['SCRIPT_NAME'])) ? basename($HTTP_SERVER_VARS['PHP_SELF']) : basename($HTTP_SERVER_VARS['SCRIPT_NAME']);
 
 // Used in the "Backup Manager" to compress backups
-  define('LOCAL_EXE_GZIP', '/usr/bin/gzip');
-  define('LOCAL_EXE_GUNZIP', '/usr/bin/gunzip');
-  define('LOCAL_EXE_ZIP', '/usr/local/bin/zip');
-  define('LOCAL_EXE_UNZIP', '/usr/local/bin/unzip');
+  define('LOCAL_EXE_GZIP', 'gzip');
+  define('LOCAL_EXE_GUNZIP', 'gunzip');
+  define('LOCAL_EXE_ZIP', 'zip');
+  define('LOCAL_EXE_UNZIP', 'unzip');
 
 // include the list of project filenames
   require(DIR_WS_INCLUDES . 'filenames.php');
 
 // include the list of project database tables
   require(DIR_WS_INCLUDES . 'database_tables.php');
-
-// customization for the design layout
-  define('BOX_WIDTH', 125); // how wide the boxes should be in pixels (default: 125)
 
 // Define how do we update currency exchange rates
 // Possible values are 'oanda' 'xe' or ''
@@ -78,15 +76,6 @@
 // include shopping cart class
   require(DIR_WS_CLASSES . 'shopping_cart.php');
 
-// check to see if php implemented session management functions - if not, include php3/php4 compatible session class
-  if (!function_exists('session_start')) {
-    define('PHP_SESSION_NAME', 'osCAdminID');
-    define('PHP_SESSION_PATH', '/');
-    define('PHP_SESSION_SAVE_PATH', SESSION_WRITE_DIRECTORY);
-
-    include(DIR_WS_CLASSES . 'sessions.php');
-  }
-
 // define how the session functions will be used
   require(DIR_WS_FUNCTIONS . 'sessions.php');
 
@@ -101,6 +90,8 @@
     ini_set('session.cookie_lifetime', '0');
     ini_set('session.cookie_path', DIR_WS_ADMIN);
   }
+
+  @ini_set('session.use_only_cookies', (SESSION_FORCE_COOKIE_USE == 'True') ? 1 : 0);
 
 // lets start our session
   tep_session_start();
@@ -135,6 +126,13 @@
 
     $current_page = basename($PHP_SELF);
 
+// if the first page request is to the login page, set the current page to the index page
+// so the redirection on a successful login is not made to the login page again
+    if ( ($current_page == FILENAME_LOGIN) && !tep_session_is_registered('redirect_origin') ) {
+      $current_page = FILENAME_DEFAULT;
+      $HTTP_GET_VARS = array();
+    }
+
     if ($current_page != FILENAME_LOGIN) {
       if (!tep_session_is_registered('redirect_origin')) {
         tep_session_register('redirect_origin');
@@ -143,18 +141,33 @@
                                  'get' => $HTTP_GET_VARS);
       }
 
+// try to automatically login with the HTTP Authentication values if it exists
+      if (!tep_session_is_registered('auth_ignore')) {
+        if (isset($HTTP_SERVER_VARS['PHP_AUTH_USER']) && !empty($HTTP_SERVER_VARS['PHP_AUTH_USER']) && isset($HTTP_SERVER_VARS['PHP_AUTH_PW']) && !empty($HTTP_SERVER_VARS['PHP_AUTH_PW'])) {
+          $redirect_origin['auth_user'] = $HTTP_SERVER_VARS['PHP_AUTH_USER'];
+          $redirect_origin['auth_pw'] = $HTTP_SERVER_VARS['PHP_AUTH_PW'];
+        }
+      }
+
+      $redirect = true;
+    }
+
+    if (!isset($login_request) || isset($HTTP_GET_VARS['login_request']) || isset($HTTP_POST_VARS['login_request']) || isset($HTTP_COOKIE_VARS['login_request']) || isset($HTTP_SESSION_VARS['login_request']) || isset($HTTP_POST_FILES['login_request']) || isset($HTTP_SERVER_VARS['login_request'])) {
       $redirect = true;
     }
 
     if ($redirect == true) {
-      tep_redirect(tep_href_link(FILENAME_LOGIN));
+      tep_redirect(tep_href_link(FILENAME_LOGIN, (isset($redirect_origin['auth_user']) ? 'action=process' : '')));
     }
 
     unset($redirect);
   }
 
 // include the language translations
+  $_system_locale_numeric = setlocale(LC_NUMERIC, 0);
   require(DIR_WS_LANGUAGES . $language . '.php');
+  setlocale(LC_NUMERIC, $_system_locale_numeric); // Prevent LC_ALL from setting LC_NUMERIC to a locale with 1,0 float/decimal values instead of 1.0 (see bug #634)
+
   $current_page = basename($PHP_SELF);
   if (file_exists(DIR_WS_LANGUAGES . $language . '/' . $current_page)) {
     include(DIR_WS_LANGUAGES . $language . '/' . $current_page);
@@ -187,6 +200,9 @@
 // file uploading class
   require(DIR_WS_CLASSES . 'upload.php');
 
+// action recorder
+  require(DIR_WS_CLASSES . 'action_recorder.php');
+
 // calculate category path
   if (isset($HTTP_GET_VARS['cPath'])) {
     $cPath = $HTTP_GET_VARS['cPath'];
@@ -202,15 +218,9 @@
     $current_category_id = 0;
   }
 
-// default open navigation box
-  if (!tep_session_is_registered('selected_box')) {
-    tep_session_register('selected_box');
-    $selected_box = 'configuration';
-  }
-
-  if (isset($HTTP_GET_VARS['selected_box'])) {
-    $selected_box = $HTTP_GET_VARS['selected_box'];
-  }
+// initialize configuration modules
+  require(DIR_WS_CLASSES . 'cfg_modules.php');
+  $cfgModules = new cfg_modules();
 
 // the following cache blocks are used in the Tools->Cache section
 // ('language' in the filename is automatically replaced by available languages)
@@ -218,18 +228,4 @@
                         array('title' => TEXT_CACHE_MANUFACTURERS, 'code' => 'manufacturers', 'file' => 'manufacturers_box-language.cache', 'multiple' => true),
                         array('title' => TEXT_CACHE_ALSO_PURCHASED, 'code' => 'also_purchased', 'file' => 'also_purchased-language.cache', 'multiple' => true)
                        );
-
-// check if a default currency is set
-  if (!defined('DEFAULT_CURRENCY')) {
-    $messageStack->add(ERROR_NO_DEFAULT_CURRENCY_DEFINED, 'error');
-  }
-
-// check if a default language is set
-  if (!defined('DEFAULT_LANGUAGE')) {
-    $messageStack->add(ERROR_NO_DEFAULT_LANGUAGE_DEFINED, 'error');
-  }
-
-  if (function_exists('ini_get') && ((bool)ini_get('file_uploads') == false) ) {
-    $messageStack->add(WARNING_FILE_UPLOADS_DISABLED, 'warning');
-  }
 ?>

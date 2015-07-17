@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: shipping.php,v 1.4 2002/11/19 01:48:08 dgw_ Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -10,8 +10,8 @@
   Released under the GNU General Public License
 */
 
-define('NAVBAR_TITLE', 'Shipping & Returns');
-define('HEADING_TITLE', 'Shipping & Returns');
+define('NAVBAR_TITLE', 'Shipping &amp; Returns');
+define('HEADING_TITLE', 'Shipping &amp; Returns');
 
-define('TEXT_INFORMATION', 'Put here your Shipping & Returns information.');
+define('TEXT_INFORMATION', 'Put here your Shipping &amp; Returns information.');
 ?>

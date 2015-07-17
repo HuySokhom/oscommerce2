@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -11,6 +11,7 @@
 */
 
 // define the database table names used in the project
+  define('TABLE_ACTION_RECORDER', 'action_recorder');
   define('TABLE_ADDRESS_BOOK', 'address_book');
   define('TABLE_ADDRESS_FORMAT', 'address_format');
   define('TABLE_ADMINISTRATORS', 'administrators');
@@ -41,6 +42,7 @@
   define('TABLE_PRODUCTS_ATTRIBUTES', 'products_attributes');
   define('TABLE_PRODUCTS_ATTRIBUTES_DOWNLOAD', 'products_attributes_download');
   define('TABLE_PRODUCTS_DESCRIPTION', 'products_description');
+  define('TABLE_PRODUCTS_IMAGES', 'products_images');
   define('TABLE_PRODUCTS_NOTIFICATIONS', 'products_notifications');
   define('TABLE_PRODUCTS_OPTIONS', 'products_options');
   define('TABLE_PRODUCTS_OPTIONS_VALUES', 'products_options_values');
@@ -48,6 +50,7 @@
   define('TABLE_PRODUCTS_TO_CATEGORIES', 'products_to_categories');
   define('TABLE_REVIEWS', 'reviews');
   define('TABLE_REVIEWS_DESCRIPTION', 'reviews_description');
+  define('TABLE_SEC_DIRECTORY_WHITELIST', 'sec_directory_whitelist');
   define('TABLE_SESSIONS', 'sessions');
   define('TABLE_SPECIALS', 'specials');
   define('TABLE_TAX_CLASS', 'tax_class');

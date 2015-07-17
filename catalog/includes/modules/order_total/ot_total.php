@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: ot_total.php,v 1.7 2003/02/13 00:12:04 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -27,7 +27,7 @@
       global $order, $currencies;
 
       $this->output[] = array('title' => $this->title . ':',
-                              'text' => '<b>' . $currencies->format($order->info['total'], true, $order->info['currency'], $order->info['currency_value']) . '</b>',
+                              'text' => '<strong>' . $currencies->format($order->info['total'], true, $order->info['currency'], $order->info['currency_value']) . '</strong>',
                               'value' => $order->info['total']);
     }
 

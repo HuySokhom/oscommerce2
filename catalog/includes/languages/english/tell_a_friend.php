@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: tell_a_friend.php,v 1.7 2003/06/10 18:20:39 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -23,7 +23,7 @@ define('FORM_FIELD_CUSTOMER_EMAIL', 'Your E-Mail Address:');
 define('FORM_FIELD_FRIEND_NAME', 'Your Friends Name:');
 define('FORM_FIELD_FRIEND_EMAIL', 'Your Friends E-Mail Address:');
 
-define('TEXT_EMAIL_SUCCESSFUL_SENT', 'Your email about <b>%s</b> has been successfully sent to <b>%s</b>.');
+define('TEXT_EMAIL_SUCCESSFUL_SENT', 'Your email about <strong>%s</strong> has been successfully sent to <strong>%s</strong>.');
 
 define('TEXT_EMAIL_SUBJECT', 'Your friend %s has recommended this great product from %s');
 define('TEXT_EMAIL_INTRO', 'Hi %s!' . "\n\n" . 'Your friend, %s, thought that you would be interested in %s from %s.');
@@ -34,4 +34,5 @@ define('ERROR_TO_NAME', 'Error: Your friends name must not be empty.');
 define('ERROR_TO_ADDRESS', 'Error: Your friends e-mail address must be a valid e-mail address.');
 define('ERROR_FROM_NAME', 'Error: Your name must not be empty.');
 define('ERROR_FROM_ADDRESS', 'Error: Your e-mail address must be a valid e-mail address.');
+define('ERROR_ACTION_RECORDER', 'Error: An e-mail has already been sent. Please try again in %s minutes.');
 ?>

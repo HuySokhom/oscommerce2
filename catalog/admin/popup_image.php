@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: popup_image.php,v 1.7 2003/06/20 00:40:23 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -32,11 +32,11 @@
     }
   }
 ?>
-<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html <?php echo HTML_PARAMS; ?>>
 <head>
 <title><?php echo $page_title; ?></title>
-<script language="javascript"><!--
+<script type="text/javascript"><!--
 var i=0;
 
 function resize() {

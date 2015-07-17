@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: email.php,v 1.12 2003/06/17 17:29:44 dgw_ Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -156,7 +156,7 @@
  */
 
     function add_html($html, $text = NULL, $images_dir = NULL) {
-      $this->html = tep_convert_linefeeds(array("\r\n", "\n", "\r"), '<br>', $html);
+      $this->html = tep_convert_linefeeds(array("\r\n", "\n", "\r"), '<br />', $html);
       $this->html_text = tep_convert_linefeeds(array("\r\n", "\n", "\r"), $this->lf, $text);
 
       if (isset($images_dir)) $this->find_html_images($images_dir);

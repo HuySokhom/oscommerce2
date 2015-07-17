@@ -1,7 +1,583 @@
-$Id: $
+$Id$
 
 osCommerce Online Merchant Changelog
-Copyright (c) 2007 osCommerce
+Copyright (c) 2013 osCommerce
+
+------------------------------------------------------------------------------
+09/25/2013 osCommerce Online Merchant v2.3.3.4
+------------------------------------------------------------------------------
+
+ * MySQL Error Functions
+   Don't pass a null parameter to the MySQL error functions otherwise PHP will
+   display a warning message.
+
+ * UTF-8 Conversion
+   Also manually convert existing data records to UTF-8 and detect encodings
+   to prevent double encodings. Allow a dry-run to show which queries would be
+   performed.
+
+ * LC_NUMERIC Locale
+   As LC_ALL is now being used to set the locale, some languages other than
+   English were using commas in float/decimal values which conflicted with
+   MySQL. LC_NUMERIC is now set and forced to the system locale after the main
+   language file has loaded.
+
+------------------------------------------------------------------------------
+09/20/2013 osCommerce Online Merchant v2.3.3.3
+------------------------------------------------------------------------------
+
+ * Database Query Logging
+   Improve database query error logging.
+
+ * Administration Tool Navigation Menu
+   Dynamically load navigation boxes.
+
+ * HTTPS -> HTTP Browser Alert
+   Have forms posting from a HTTPS to HTTP page post to a HTTPS version to
+   prevent the browser (Firefox) from alerting the user of being directed to
+   an insecure page.
+
+ * Currencies
+   Force decimal places value to an integer value.
+
+ * Action Recorder
+   When expiring logged entries, don't pass the database connection link to
+   tep_db_affected_rows().
+
+ * UTF-8
+   Set the MySQL character set to UTF-8 after a connection is made.
+   Create the database tables in utf8_unicode_ci for new installations.
+   Set the English locale to en_US.UTF-8, en_US.UTF8, enu_usa.
+
+ * Date of Birth
+   Take the Configuration -> Minimum Values -> Date of Birth value into
+   consideration to make the date of birth field optional.
+
+ * Administration Tool Automatic HTTP Authentication Login
+   Don't use the HTTP Authentication values when the login form is being
+   submitted.
+   Don't show an invalid administrator notice when an automatic HTTP
+   Authentication fails.
+   Don't record failed automatic HTTP Authentication log ins.
+
+ * Canonical Manufacturer ID
+   Force the Manufacturer ID to an integer value.
+
+ * Administration Tool -> Who's Online
+   Remove the session_decode() functionality and show shopping cart contents
+   only for logged in customers.
+   When regenerating a session ID, update the session ID in the who's online
+   database table to prevent duplicate entries.
+
+ * MailChimp 360
+   Fix module title.
+
+ * Administration Tool Extended Security Check Modules
+   Introduce new extended security check modules that are called in the new
+   Administration Tool -> Tools -> Security Checks page. These modules are
+   not called on the Administration Tool Dashboard page as normal security
+   check modules as these modules are more resource intensive. New modules
+   include:
+
+   - admin/backups directory public accessibility check
+   - admin/backups file public accessibility check
+   - admin http authentication check
+   - ext/ directory public accessibility check
+   - mysql utf8 database tables check
+   - version update performed check (30 days)
+
+   A normal extended_last_run security check module is also added to check if
+   the extended checks have run in the last 30 days.
+
+ * Administration Tool -> Tools -> Database Tables
+   Introduce a new Database Tables page to check, analyze, optimize, and
+   repair database tables. A Convert to UTF8 action is also available to
+   convert existing database tables to utf8_unicode_ci.
+
+------------------------------------------------------------------------------
+09/04/2013 osCommerce Online Merchant v2.3.3.2
+------------------------------------------------------------------------------
+
+ * PHP 5.5 Compatibility
+   Replace mysql_* database function calls with mysqli_*.
+
+ * Administration Tool -> Dashboard -> Partner News
+   Add new Administration Tool Dashboard module.
+
+ * Administrator Account Initialization
+   Prevent empty administrator account from being initialized.
+
+ * tep_catalog_href_link()
+   Take the catalog HTTPS path into consideration for HTTPS links.
+
+ * Administration Tool Navigation Menu
+   Collapse navigation menu on the Dashboard page.
+
+ * Google+ +1 and Google+ Share Social Bookmark Modules
+   Show the button images in the chosen language.
+
+ * Template Modules
+   Only include template module class files and language definitions if their
+   files exist.
+
+ * Canonical Header Tag Module
+   Link to the main product information page and ignore product attribute
+   combinations.
+
+ * New Twitter Product Card Header Tag Module
+   Add Twitter Product Card meta tags to the product information page.
+
+ * New Google AdWords Conversion Tracking Header Tag Module
+   Add Google AdWords Conversion Tracking code to the checkout success page.
+
+------------------------------------------------------------------------------
+08/26/2013 osCommerce Online Merchant v2.3.3.1
+------------------------------------------------------------------------------
+
+ * Who's Online
+   Parse REQUEST_URI with tep_db_prepare_input() before storing the value in
+   the database.
+   Replace REMOTE_ADDR with tep_get_ip_address().
+
+ * Administration Tool -> Catalog -> Categories/Products
+   Fix product price gross tax calculations when adding or editing products.
+
+ * Sessions
+   Register a shutdown function to close and write the session data.
+
+ * tep_redirect()
+   When redirecting from HTTPS -> HTTP and replacing the url with a HTTPS
+   version, also take DIR_WS_HTTPS_CATALOG into consideration which may differ
+   from DIR_WS_HTTP_CATALOG.
+
+ * Session
+   Also check for and allow , (comma) and - (minus) characters in the session
+   ID.
+
+------------------------------------------------------------------------------
+08/15/2012 osCommerce Online Merchant v2.3.3
+------------------------------------------------------------------------------
+
+ * Administration Tool -> Tools -> Send E-Mail
+   Convert HTML e-mail to plain-text if HTML E-Mails is disabled.
+
+ * tep_redirect()
+   Fix URL encoding by replacing '&amp;' with '&'.
+
+ * Administration Tool -> Tools -> Define Languages
+   Keep the selected language in the language selection pull down menu.
+
+ * Checkout Process
+   Improve checking of shopping cart product attributes.
+
+ * Shopping Cart
+   Replace hardcoded text with new TEXT_OR and TEXT_REMOVE language
+   definitions.
+
+ * Product Info
+   Redirect to store index if no product ID exists in the request URL.
+
+ * Administration Tool Dashboard Modules
+   Properly close HTML links.
+
+ * New Products Module
+   Fix check on new products existing.
+
+ * Administration Tool -> Catalog -> Reviews
+   Fix typo in table width.
+
+ * tep_image()
+   Remove extra space in image title.
+
+ * Administration Tool -> Tools -> Action Recorder
+   Fix paging of action recorder listing.
+
+ * Administration Tool -> Catalog -> Categories/Products
+   Fix casing of onkeyup HTML attribute.
+
+ * Administration Tool -> Catalog -> Categories/Products
+   Remove legacy product preview code.
+
+ * Checkout Confirmation
+   Improve checking of order comments.
+
+ * Shopping Cart
+   Remove legacy TABLE_HEADING_REMOVE, TABLE_HEADING_QUANTITY,
+   TABLE_HEADING_MODEL, and TABLE_HEADING_TOTAL language definitions.
+
+ * Manufacturers
+   Improve filtering of manufacturers.
+
+ * Product Information
+   Fix the total number of product reviews to count only the reviews in the
+   selected language.
+
+ * Sessions - tep_session_register()
+   Also reference and keep track of null variables in the session. This
+   general bug fix also addresses a compatibility issue with PHP 5.4.0.
+
+ * Sessions - tep_session_recreate()
+   Replace internal logic to use session_regenerate_id() for PHP 5.1+ servers.
+   If $SID is defined, also update its value with the new session ID.
+
+ * Product Information
+   Prevent the session ID being added to product images.
+
+ * Payment Class
+   Remove legacy PHP 3 code.
+
+ * GZIP Compression
+   Automatically disable if PHP 5.4.0 to PHP 5.4.5 is used due to PHP bug
+   #55544.
+
+ * Checkout Shipping
+   Improve checking of the shopping cart ID.
+
+ * Time Zone Compatibility
+   Improve PHP 5.2 Time Zone compatibility by setting the time zone to
+   CFG_TIME_ZONE or to the default time zone if it is not defined.
+
+ * General
+   Typecast remaining variables used in SQL queries.
+
+ * Administration Tool -> Modules
+   Fix edit button link containing the module code.
+
+ * Administration Tool -> Tools -> Banner Manager
+   Properly delete banner image when the banner is being deleted.
+
+ * Social Bookmark Modules
+   Replace hardcoded 'images/' path with DIR_WS_IMAGES.
+
+ * New Robot NoIndex Header Tag Module
+   Adds a noindex meta tag to specified pages.
+
+ * New Google+ +1 Button and Google+ Share Social Bookmark Modules
+   Adds Google+ +1 and Google+ Share buttons to the product information page.
+
+ * New Canonical Header Tag Module
+   Adds canonical meta links to the product information and category listing
+   pages.
+
+ * New Pinterest Social Bookmark Module
+   Adds Pinterest share button to the product information page.
+
+ * Libraries Update
+   - 960gs updated to latest version.
+   - jQuery 1.4.2 to 1.8.0.
+   - jQuery UI 1.8.6 to 1.8.22.
+   - bxGallery compatibility changes for jQuery 1.8.0.
+
+------------------------------------------------------------------------------
+07/17/2012 osCommerce Online Merchant v2.3.2
+------------------------------------------------------------------------------
+
+ * Changed customer password forgotten feature to e-mail a personal link to
+   the customer where they can change their password up to 24 hours, instead
+   of directly changing the password to a random string and e-mailing it to
+   the customer.
+
+   Added new password_reset.php page to manage personal password reset links.
+
+   Added new ar_password_reset.php Action Recorder module to log and limit
+   the request of personal password reset links to once every 5 minutes.
+
+ * Improve logic of tep_create_random_value() by using Phpass' random number
+   generator.
+
+   If function parameter $type is not 'mixed', 'chars', or
+   'digits', return a 'mixed' string instead of false.
+
+ * Add openssl_random_pseudo_bytes() and mcrypt_create_iv() to Phpass'
+   get_random_bytes() class method. These are used if /dev/urandom is not
+   available.
+
+ * Only seed the random number generator if PHP < 4.2 is used.
+
+------------------------------------------------------------------------------
+11/15/2010 osCommerce Online Merchant v2.3.1
+------------------------------------------------------------------------------
+
+ * Confirm new Product Reviews to the customer.
+
+ * Fix a PHP notice in Phpass.
+
+ * Fix Reviews Box language definition.
+
+ * Fix pre-defined Australian Dollar currency code.
+
+ * Label the HTML Content field for large product images.
+
+ * XHTML fixes for pop-up pages.
+
+------------------------------------------------------------------------------
+11/13/2010 osCommerce Online Merchant v2.3
+------------------------------------------------------------------------------
+
+* Payment module updates:
+  - 2Checkout
+  - PayPal Website Payments Pro - Direct Payments
+  - PayPal Website Payments Pro (Payflow Edition) - Direct Payments
+  - PayPal Website Payments Pro - Express Checkout
+  - PayPal Website Payments Pro (Payflow Edition) - Express Checkout
+  - Sage Pay Form, Server, and Direct
+  - iPayment
+  - RBS WorldPay Hosted
+  - Moneybookers
+  - InPay
+  - PayPoint.net SECPay
+
+* Shipping module updates:
+  - USPS
+
+* Allow new template group modules to be created to inject HTML content into
+  the page layout.
+
+* Update boxes to modules which can be installed, configured, and sorted.
+
+* Show only installed modules on the Administration Tool Modules page, and
+  link to a listing showing new and available modules.
+
+* Moderate product reviews.
+
+* Load either includes/local/configure.php or includes/configure.php, not
+  both.
+
+* Modularize Administration Tool Modules page.
+
+* Allow multiple large product images and HTML content (eg, Flash video) for
+  products.
+
+* Replace usage of SpiffyCal with jQuery UI DatePicker widgets.
+
+* Update layout to XHTML Transitional.
+
+* Integrate 960 Grid System CSS Framework into the layout.
+
+* Update buttons with jQuery UI Buttons.
+
+* Add jQuery, jQuery UI, Flot, bxGallery, Fancybox javascript libraries.
+
+* Introduce Administration Tool Dashboard modules.
+
+* Migrate customer and administrator passwords to phpass.
+
+* Introduce Social Bookmark modules for products.
+  - Facebook and Facebook Like
+  - Twitter and Twitter Button
+  - Google Buzz
+  - Digg
+
+* Introduce Store Logo for the Administration Tool.
+
+* Allow anonymous server statics to be sent from the Administration Tool
+  Server Information page.
+
+* Add a is_writable() compatibility function for Windows.
+
+* Introduce Header Tags modules.
+  - Google Analytics and E-Commerce Tracking
+  - MailChimp E-Commerce 360
+  - OpenSearch
+
+* Move HTML layout to template_top.php/template_bottom.php files.
+
+* Add new tep_get_version() function to retrieve the installed version.
+
+* Introduce Version Checker for the Administration Tool.
+
+* Set session.use_only_cookies to match SESSION_FORCE_COOKIE_USE.
+
+* Show list of pre-defined currencies when adding new currencies.
+
+* Example Credit Card payment module removed.
+
+* German and Spanish language definitions removed from the core. (To be
+  maintained as add-ons)
+
+* Remove File Manager from the Administration Tool.
+
+* Don't show languages or currencies box if only one language or currency is
+  defined.
+
+* Add API tag to modules.
+
+* Introduce Security Check modules for the Administration Tool.
+
+* Introduce Security Directory Permissions feature for the Administration
+  Tool.
+
+* PHP v3 compatibility code removed.
+
+* Recreate session IDs by default when customers login or create an account.
+
+* Introduce Action Recorder to log and limit actions.
+
+* Strengthen Administration Tool login routine.
+
+* Replace ereg functions with preg functions for PHP v5.3.
+
+* Fix timezone warning messages on PHP v5.3 servers.
+
+* Protect forms with a token ID that is assigned to the customers session.
+
+* Generate a new $cartID value when restoring shopping cart contents.
+
+* Calculate shipping fees only for shippable products and not virtual/download
+  products.
+
+* Parse Date of Birth values.
+
+* Escape the filename and parameters in tep_href_link().
+
+* Escape shell arguments in the checkdnsrr() compatibility function.
+
+* Apply magic_quotes to GET parameters when Search Engine Friendly URLs is
+  enabled.
+
+* Support automatic HTTP Authentication logins for the Administration Tool.
+
+------------------------------------------------------------------------------
+01/30/2008 osCommerce Online Merchant 2.2 RC2a
+------------------------------------------------------------------------------
+
+Due to two bugs that were introduced with 2.2 RC2, it has been repackaged as
+2.2 RC2a with the following changes:
+
+* The Administration Tool -> Backup Manager -> Restoration routine failed on
+  PHP <5 servers due to the use of stripos(). A compatibility function has
+  been added to fix this.
+  [r1829]
+
+* The reference of $_SESSION in the tep_session_is_registered() function
+  produces a PHP warning when the session has not been started (ie, for search
+  engine spiders). This has been fixed by checking if $_SESSION is set.
+  [r1830]
+
+------------------------------------------------------------------------------
+01/16/2008 osCommerce Online Merchant 2.2 RC2
+------------------------------------------------------------------------------
+
+* Payment module changes:
+  - Authorize.net module replaced with newer AIM and SIM modules.
+  - New PayPal Express Checkout, PayPal Express Checkout (UK), PayPal Direct,
+    PayPal Direct (UK), and PayPal Website Payments Standard modules.
+  - Removed paypal.php and paypal_ipn.php modules.
+  - Removed PayQuake module (the gateway now uses Authorize.net).
+
+* Shipping module changes:
+  - USPS updated to match new shipping methods. The test/production server
+    parameter has been removed as the test server only works with specific
+    test-cases.
+
+* Retrieve product names in one query for the new products module.
+  [r1806]
+
+* When restoring a database, only drop tables that are being restored.
+  [r1804, r1805]
+
+* Display module version on the Administration Tool if it contains a version
+  signature string.
+  [r1802]
+
+* Add a .htaccess file to the admin/includes/ directory to prevent direct HTTP
+  requests to PHP files.
+  [r1775]
+
+* Fix the pagination links on the Administration Tool -> Products Attributes
+  page.
+  [r1774, r1776]
+
+* Verify the customers primary address when it is being updated.
+  Verify the number of address book entries before inserting a new one.
+  [r1766]
+
+* Avoid removal of products when deleting a category in a search result
+  listing.
+  [r1754]
+
+* Make the database session storage handler return an empty string for
+  variables that don't exist in the session instead of returning a boolean
+  false value.
+  [r1752]
+
+* Fix a variable name being checked against in the
+  Administration Tool -> Tools -> Newsletter Manager section.
+  [r1751]
+
+* Improve the product nofitication logic on the checkout success page.
+  [r1749]
+
+* Fix http_build_query() compatibility function in the Administration Tool.
+  [r1748]
+
+* Increase the orders.payment_method database table field length to 255
+  characters.
+  [r1747]
+
+* MySQL 5.0 Strict Mode compatibility fixes.
+  [r1746, 1755, 1810]
+
+* Fix logic with nested tables in the Administration Tool tableBlock class.
+  [r1745]
+
+* Add checks when creating files and directories on the
+  Administration Tool -> Tools -> File Manager section.
+  [r1744]
+
+* Remove HTML formatting from credit card processing error messages.
+  [r1743]
+
+* Move the logic of storing the credit card number from the order class to
+  the payment module level.
+  [r1736]
+
+* Use the free shipping language definition for the shipping title when free
+  shipping is active.
+  [r1732]
+
+* Add indexes to database tables.
+  [r1729]
+
+* Introduce an active download flag and a public status flag to the order
+  status levels.
+  [r1724, r1725, r1728] (r1724 was reverted in r1725)
+
+* Fix the shipping address when a virtual product was added to the cart and
+  replaced with a physical product.
+  [r1716]
+
+* Improve register_globals compatibility layer when registering session
+  variables.
+  [r1704, r1705, r1723, r1741] (r1704, r1705, and r1723 were all reverted in r1741)
+
+* Correctly parse the products to remove from the product notifications list.
+  [r1703]
+
+* Introduce the ability to show additional checkout buttons on the shopping
+  cart page for certain payment methods (eg, PayPal Express Checkout).
+  Introduce the ability to define foreign shipping and billing addresses
+  during the checkout procedure (eg, the shipping address provided by PayPal
+  Express Checkout).
+  Add further checks to the checkout process page to prevent fraud orders.
+  [r1699, r1750]
+
+* Calling $order_total_modules->process() multiple times would duplicate the
+  output data due to the order total modules already being instantiated.
+  [r1698]
+
+* Make sure $parameters is an array in the navigation history class.
+  [r1696]
+
+* Remove secondary pre-euro currencies from display.
+  [r1695]
+
+* Fix downloads when "Download by redirect" and "SEFU" are both enabled.
+  Fallback to readfile() download delivery mechanism if direct download files.
+  [r1681, r1720]
+
+* Add toggleDivBlock() Javascript function to admin/includes/general.js.
+  [r1663]
 
 ------------------------------------------------------------------------------
 07/03/2007 osCommerce Online Merchant 2.2 RC1

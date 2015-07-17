@@ -1,11 +1,11 @@
 <?php
 /*
-  $Id: whos_online.php,v 1.32 2003/06/29 22:50:52 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
 
-  Copyright (c) 2003 osCommerce
+  Copyright (c) 2013 osCommerce
 
   Released under the GNU General Public License
 */
@@ -19,30 +19,11 @@
 
 // remove entries that have expired
   tep_db_query("delete from " . TABLE_WHOS_ONLINE . " where time_last_click < '" . $xx_mins_ago . "'");
-?>
-<!doctype html public "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html <?php echo HTML_PARAMS; ?>>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=<?php echo CHARSET; ?>">
-<title><?php echo TITLE; ?></title>
-<link rel="stylesheet" type="text/css" href="includes/stylesheet.css">
-<script language="javascript" src="includes/general.js"></script>
-</head>
-<body marginwidth="0" marginheight="0" topmargin="0" bottommargin="0" leftmargin="0" rightmargin="0" bgcolor="#FFFFFF">
-<!-- header //-->
-<?php require(DIR_WS_INCLUDES . 'header.php'); ?>
-<!-- header_eof //-->
 
-<!-- body //-->
-<table border="0" width="100%" cellspacing="2" cellpadding="2">
-  <tr>
-    <td width="<?php echo BOX_WIDTH; ?>" valign="top"><table border="0" width="<?php echo BOX_WIDTH; ?>" cellspacing="1" cellpadding="1" class="columnLeft">
-<!-- left_navigation //-->
-<?php require(DIR_WS_INCLUDES . 'column_left.php'); ?>
-<!-- left_navigation_eof //-->
-    </table></td>
-<!-- body_text //-->
-    <td width="100%" valign="top"><table border="0" width="100%" cellspacing="0" cellpadding="2">
+  require(DIR_WS_INCLUDES . 'template_top.php');
+?>
+
+    <table border="0" width="100%" cellspacing="0" cellpadding="2">
       <tr>
         <td><table border="0" width="100%" cellspacing="0" cellpadding="0">
           <tr>
@@ -69,10 +50,10 @@
   while ($whos_online = tep_db_fetch_array($whos_online_query)) {
     $time_online = (time() - $whos_online['time_entry']);
     if ((!isset($HTTP_GET_VARS['info']) || (isset($HTTP_GET_VARS['info']) && ($HTTP_GET_VARS['info'] == $whos_online['session_id']))) && !isset($info)) {
-      $info = $whos_online['session_id'];
+      $info = new ObjectInfo($whos_online);
     }
 
-    if ($whos_online['session_id'] == $info) {
+    if (isset($info) && ($whos_online['session_id'] == $info->session_id)) {
       echo '              <tr id="defaultSelected" class="dataTableRowSelected" onmouseover="rowOverEffect(this)" onmouseout="rowOutEffect(this)">' . "\n";
     } else {
       echo '              <tr class="dataTableRow" onmouseover="rowOverEffect(this)" onmouseout="rowOutEffect(this)" onclick="document.location.href=\'' . tep_href_link(FILENAME_WHOS_ONLINE, tep_get_all_get_params(array('info', 'action')) . 'info=' . $whos_online['session_id'], 'NONSSL') . '\'">' . "\n";
@@ -84,7 +65,7 @@
                 <td class="dataTableContent" align="center"><?php echo $whos_online['ip_address']; ?></td>
                 <td class="dataTableContent"><?php echo date('H:i:s', $whos_online['time_entry']); ?></td>
                 <td class="dataTableContent" align="center"><?php echo date('H:i:s', $whos_online['time_last_click']); ?></td>
-                <td class="dataTableContent"><?php if (eregi('^(.*)' . tep_session_name() . '=[a-f,0-9]+[&]*(.*)', $whos_online['last_page_url'], $array)) { echo $array[1] . $array[2]; } else { echo $whos_online['last_page_url']; } ?>&nbsp;</td>
+                <td class="dataTableContent"><?php if (preg_match('/^(.*)osCsid=[A-Z0-9,-]+[&]*(.*)/i', $whos_online['last_page_url'], $array)) { echo $array[1] . $array[2]; } else { echo $whos_online['last_page_url']; } ?>&nbsp;</td>
               </tr>
 <?php
   }
@@ -98,79 +79,41 @@
   $contents = array();
 
   if (isset($info)) {
-    $heading[] = array('text' => '<b>' . TABLE_HEADING_SHOPPING_CART . '</b>');
+    $heading[] = array('text' => '<strong>' . TABLE_HEADING_SHOPPING_CART . '</strong>');
 
-    if (STORE_SESSIONS == 'mysql') {
-      $session_data = tep_db_query("select value from " . TABLE_SESSIONS . " WHERE sesskey = '" . $info . "'");
-      $session_data = tep_db_fetch_array($session_data);
-      $session_data = trim($session_data['value']);
-    } else {
-      if ( (file_exists(tep_session_save_path() . '/sess_' . $info)) && (filesize(tep_session_save_path() . '/sess_' . $info) > 0) ) {
-        $session_data = file(tep_session_save_path() . '/sess_' . $info);
-        $session_data = trim(implode('', $session_data));
-      }
-    }
+    if ( $info->customer_id > 0 ) {
+      $products_query = tep_db_query("select cb.customers_basket_quantity, cb.products_id, pd.products_name from " . TABLE_CUSTOMERS_BASKET . " cb, " . TABLE_PRODUCTS_DESCRIPTION . " pd where cb.customers_id = '" . (int)$info->customer_id . "' and cb.products_id = pd.products_id and pd.language_id = '" . (int)$languages_id . "'");
 
-    if ($length = strlen($session_data)) {
-      if (PHP_VERSION < 4) {
-        $start_id = strpos($session_data, 'customer_id[==]s');
-        $start_cart = strpos($session_data, 'cart[==]o');
-        $start_currency = strpos($session_data, 'currency[==]s');
-        $start_country = strpos($session_data, 'customer_country_id[==]s');
-        $start_zone = strpos($session_data, 'customer_zone_id[==]s');
-      } else {
-        $start_id = strpos($session_data, 'customer_id|s');
-        $start_cart = strpos($session_data, 'cart|O');
-        $start_currency = strpos($session_data, 'currency|s');
-        $start_country = strpos($session_data, 'customer_country_id|s');
-        $start_zone = strpos($session_data, 'customer_zone_id|s');
-      }
+      if ( tep_db_num_rows($products_query) ) {
+        $shoppingCart = new shoppingCart();
 
-      for ($i=$start_cart; $i<$length; $i++) {
-        if ($session_data[$i] == '{') {
-          if (isset($tag)) {
-            $tag++;
-          } else {
-            $tag = 1;
+        while ( $products = tep_db_fetch_array($products_query) ) {
+          $contents[] = array('text' => $products['customers_basket_quantity'] . ' x ' . $products['products_name']);
+
+          $attributes = array();
+
+          if ( strpos($products['products_id'], '{') !== false ) {
+            $combos = array();
+            preg_match_all('/(\{[0-9]+\}[0-9]+){1}/', $products['products_id'], $combos);
+
+            foreach ( $combos[0] as $combo ) {
+              $att = array();
+              preg_match('/\{([0-9]+)\}([0-9]+)/', $combo, $att);
+
+              $attributes[$att[1]] = $att[2];
+            }
           }
-        } elseif ($session_data[$i] == '}') {
-          $tag--;
-        } elseif ( (isset($tag)) && ($tag < 1) ) {
-          break;
-        }
-      }
 
-      $session_data_id = substr($session_data, $start_id, (strpos($session_data, ';', $start_id) - $start_id + 1));
-      $session_data_cart = substr($session_data, $start_cart, $i);
-      $session_data_currency = substr($session_data, $start_currency, (strpos($session_data, ';', $start_currency) - $start_currency + 1));
-      $session_data_country = substr($session_data, $start_country, (strpos($session_data, ';', $start_country) - $start_country + 1));
-      $session_data_zone = substr($session_data, $start_zone, (strpos($session_data, ';', $start_zone) - $start_zone + 1));
-
-      session_decode($session_data_id);
-      session_decode($session_data_currency);
-      session_decode($session_data_country);
-      session_decode($session_data_zone);
-      session_decode($session_data_cart);
-
-      if (PHP_VERSION < 4) {
-        $broken_cart = $cart;
-        $cart = new shoppingCart;
-        $cart->unserialize($broken_cart);
-      }
-
-      if (is_object($cart)) {
-        $products = $cart->get_products();
-        for ($i = 0, $n = sizeof($products); $i < $n; $i++) {
-          $contents[] = array('text' => $products[$i]['quantity'] . ' x ' . $products[$i]['name']);
+          $shoppingCart->add_cart(tep_get_prid($products['products_id']), $products['customers_basket_quantity'], $attributes);
         }
 
-        if (sizeof($products) > 0) {
-          $contents[] = array('text' => tep_draw_separator('pixel_black.gif', '100%', '1'));
-          $contents[] = array('align' => 'right', 'text'  => TEXT_SHOPPING_CART_SUBTOTAL . ' ' . $currencies->format($cart->show_total(), true, $currency));
-        } else {
-          $contents[] = array('text' => '&nbsp;');
-        }
+        $contents[] = array('text' => tep_draw_separator('pixel_black.gif', '100%', '1'));
+        $contents[] = array('align' => 'right', 'text'  => TEXT_SHOPPING_CART_SUBTOTAL . ' ' . $currencies->format($shoppingCart->show_total()));
+      } else {
+        $contents[] = array('text' => '&nbsp;');
       }
+    } else {
+      $contents[] = array('text' => 'N/A');
     }
   }
 
@@ -186,16 +129,9 @@
           </tr>
         </table></td>
       </tr>
-    </table></td>
-<!-- body_text_eof //-->
-  </tr>
-</table>
-<!-- body_eof //-->
+    </table>
 
-<!-- footer //-->
-<?php require(DIR_WS_INCLUDES . 'footer.php'); ?>
-<!-- footer_eof //-->
-<br>
-</body>
-</html>
-<?php require(DIR_WS_INCLUDES . 'application_bottom.php'); ?>
+<?php
+  require(DIR_WS_INCLUDES . 'template_bottom.php');
+  require(DIR_WS_INCLUDES . 'application_bottom.php');
+?>

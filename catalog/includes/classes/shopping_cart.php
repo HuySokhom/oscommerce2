@@ -1,11 +1,11 @@
 <?php
 /*
-  $Id: shopping_cart.php,v 1.35 2003/06/25 21:14:33 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
 
-  Copyright (c) 2003 osCommerce
+  Copyright (c) 2012 osCommerce
 
   Released under the GNU General Public License
 */
@@ -56,6 +56,9 @@
       }
 
       $this->cleanup();
+
+// assign a temporary unique ID to the order contents to prevent hack attempts during the checkout procedure
+      $this->cartID = $this->generate_cart_id();
     }
 
     function reset($reset_database = false) {
@@ -87,14 +90,22 @@
 
       $attributes_pass_check = true;
 
-      if (is_array($attributes)) {
+      if (is_array($attributes) && !empty($attributes)) {
         reset($attributes);
         while (list($option, $value) = each($attributes)) {
           if (!is_numeric($option) || !is_numeric($value)) {
             $attributes_pass_check = false;
             break;
+          } else {
+            $check_query = tep_db_query("select products_attributes_id from " . TABLE_PRODUCTS_ATTRIBUTES . " where products_id = '" . (int)$products_id . "' and options_id = '" . (int)$option . "' and options_values_id = '" . (int)$value . "' limit 1");
+            if (tep_db_num_rows($check_query) < 1) {
+              $attributes_pass_check = false;
+              break;
+            }
           }
         }
+      } elseif (tep_has_product_attributes($products_id)) {
+        $attributes_pass_check = false;
       }
 
       if (is_numeric($products_id) && is_numeric($qty) && ($attributes_pass_check == true)) {
@@ -167,6 +178,9 @@
             if (tep_session_is_registered('customer_id')) tep_db_query("update " . TABLE_CUSTOMERS_BASKET_ATTRIBUTES . " set products_options_value_id = '" . (int)$value . "' where customers_id = '" . (int)$customer_id . "' and products_id = '" . tep_db_input($products_id_string) . "' and products_options_id = '" . (int)$option . "'");
           }
         }
+
+// assign a temporary unique ID to the order contents to prevent hack attempts during the checkout procedure
+        $this->cartID = $this->generate_cart_id();
       }
     }
 

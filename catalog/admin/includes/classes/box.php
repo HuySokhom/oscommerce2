@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: box.php,v 1.7 2003/06/20 16:23:08 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -14,7 +14,7 @@
   $heading = array();
   $heading[] = array('params' => 'class="menuBoxHeading"',
                      'text'  => BOX_HEADING_TOOLS,
-                     'link'  => tep_href_link(basename($PHP_SELF), tep_get_all_get_params(array('selected_box')) . 'selected_box=tools'));
+                     'link'  => tep_href_link(basename($PHP_SELF));
 
   $contents = array();
   $contents[] = array('text'  => SOME_TEXT);
@@ -52,7 +52,7 @@
       $this->heading = $this->tableBlock($heading);
 
       $this->table_data_parameters = 'class="menuBoxContent"';
-      $this->contents = $this->tableBlock($contents);
+      $this->contents = (!empty($contents) ? $this->tableBlock($contents) : '');
 
       return $this->heading . $this->contents;
     }

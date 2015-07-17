@@ -1,11 +1,11 @@
 <?php
 /*
-  $Id: compatibility.php,v 1.10 2003/06/23 01:20:05 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
 
-  Copyright (c) 2007 osCommerce
+  Copyright (c) 2012 osCommerce
 
   Released under the GNU General Public License
 */
@@ -49,118 +49,22 @@
     do_magic_quotes_gpc($HTTP_COOKIE_VARS);
   }
 
-  if (!function_exists('is_numeric')) {
-    function is_numeric($param) {
-      return ereg("^[0-9]{1,50}.?[0-9]{0,50}$", $param);
-    }
-  }
-
-  if (!function_exists('is_uploaded_file')) {
-    function is_uploaded_file($filename) {
-      if (!$tmp_file = get_cfg_var('upload_tmp_dir')) {
-        $tmp_file = dirname(tempnam('', ''));
-      }
-
-      if (strchr($tmp_file, '/')) {
-        if (substr($tmp_file, -1) != '/') $tmp_file .= '/';
-      } elseif (strchr($tmp_file, '\\')) {
-        if (substr($tmp_file, -1) != '\\') $tmp_file .= '\\';
-      }
-
-      return file_exists($tmp_file . basename($filename));
-    }
-  }
-
-  if (!function_exists('move_uploaded_file')) {
-    function move_uploaded_file($file, $target) {
-      return copy($file, $target);
-    }
+// set default timezone if none exists (PHP 5.3 throws an E_WARNING)
+  if (PHP_VERSION >= '5.2') {
+    date_default_timezone_set(defined('CFG_TIME_ZONE') ? CFG_TIME_ZONE : date_default_timezone_get());
   }
 
   if (!function_exists('checkdnsrr')) {
     function checkdnsrr($host, $type) {
       if(tep_not_null($host) && tep_not_null($type)) {
-        @exec("nslookup -type=$type $host", $output);
+        @exec("nslookup -type=" . escapeshellarg($type) . " " . escapeshellarg($host), $output);
         while(list($k, $line) = each($output)) {
-          if(eregi("^$host", $line)) {
+          if(preg_match("/^$host/i", $line)) {
             return true;
           }
         }
       }
       return false;
-    }
-  }
-
-  if (!function_exists('in_array')) {
-    function in_array($lookup_value, $lookup_array) {
-      reset($lookup_array);
-      while (list($key, $value) = each($lookup_array)) {
-        if ($value == $lookup_value) return true;
-      }
-
-      return false;
-    }
-  }
-
-  if (!function_exists('array_merge')) {
-    function array_merge($array1, $array2, $array3 = '') {
-      if ($array3 == '') $array3 = array();
-
-      while (list($key, $val) = each($array1)) $array_merged[$key] = $val;
-      while (list($key, $val) = each($array2)) $array_merged[$key] = $val;
-
-      if (sizeof($array3) > 0) while (list($key, $val) = each($array3)) $array_merged[$key] = $val;
-
-      return (array)$array_merged;
-    }
-  }
-
-  if (!function_exists('array_shift')) {
-    function array_shift(&$array) {
-      $i = 0;
-      $shifted_array = array();
-      reset($array);
-      while (list($key, $value) = each($array)) {
-        if ($i > 0) {
-          $shifted_array[$key] = $value;
-        } else {
-          $return = $array[$key];
-        }
-        $i++;
-      }
-      $array = $shifted_array;
-
-      return $return;
-    }
-  }
-
-  if (!function_exists('array_reverse')) {
-    function array_reverse($array) {
-      $reversed_array = array();
-
-      for ($i=sizeof($array)-1; $i>=0; $i--) {
-        $reversed_array[] = $array[$i];
-      }
-
-      return $reversed_array;
-    }
-  }
-
-  if (!function_exists('array_slice')) {
-    function array_slice($array, $offset, $length = '0') {
-      $length = abs($length);
-
-      if ($length == 0) {
-        $high = sizeof($array);
-      } else {
-        $high = $offset+$length;
-      }
-
-      for ($i=$offset; $i<$high; $i++) {
-        $new_array[$i-$offset] = $array[$i];
-      }
-
-      return $new_array;
     }
   }
 
@@ -186,7 +90,7 @@
         $arg_separator = ini_get('arg_separator.output');
 
         if ( empty($arg_separator) ) {
-          $separator = '&';
+          $arg_separator = '&';
         }
       }
 
@@ -217,7 +121,7 @@
         return null;
       }
 
-      return implode($separator, $tmp);
+      return implode($arg_separator, $tmp);
     }
 
 // Helper function
@@ -235,6 +139,35 @@
       }
 
       return implode($arg_separator, $tmp);
+    }
+  }
+
+/*
+ * stripos() natively supported from PHP 5.0
+ * From Pear::PHP_Compat
+ */
+
+  if (!function_exists('stripos')) {
+    function stripos($haystack, $needle, $offset = null) {
+      $fix = 0;
+
+      if (!is_null($offset)) {
+        if ($offset > 0) {
+          $haystack = substr($haystack, $offset, strlen($haystack) - $offset);
+          $fix = $offset;
+        }
+      }
+
+      $segments = explode(strtolower($needle), strtolower($haystack), 2);
+
+// Check there was a match
+      if (count($segments) == 1) {
+        return false;
+      }
+
+      $position = strlen($segments[0]) + $fix;
+
+      return $position;
     }
   }
 ?>

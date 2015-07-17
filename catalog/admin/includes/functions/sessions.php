@@ -1,14 +1,19 @@
 <?php
 /*
-  $Id: sessions.php,v 1.9 2003/06/23 01:20:05 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
 
-  Copyright (c) 2007 osCommerce
+  Copyright (c) 2013 osCommerce
 
   Released under the GNU General Public License
 */
+
+  if ( (PHP_VERSION >= 4.3) && ((bool)ini_get('register_globals') == false) ) {
+    @ini_set('session.bug_compat_42', 1);
+    @ini_set('session.bug_compat_warn', 0);
+  }
 
   if (STORE_SESSIONS == 'mysql') {
     if (!$SESS_LIFE = get_cfg_var('session.gc_maxlifetime')) {
@@ -31,7 +36,7 @@
         return $value['value'];
       }
 
-      return false;
+      return '';
     }
 
     function _sess_write($key, $val) {
@@ -69,19 +74,19 @@
     $sane_session_id = true;
 
     if (isset($HTTP_GET_VARS[tep_session_name()])) {
-      if (preg_match('/^[a-zA-Z0-9]+$/', $HTTP_GET_VARS[tep_session_name()]) == false) {
+      if (preg_match('/^[a-zA-Z0-9,-]+$/', $HTTP_GET_VARS[tep_session_name()]) == false) {
         unset($HTTP_GET_VARS[tep_session_name()]);
 
         $sane_session_id = false;
       }
     } elseif (isset($HTTP_POST_VARS[tep_session_name()])) {
-      if (preg_match('/^[a-zA-Z0-9]+$/', $HTTP_POST_VARS[tep_session_name()]) == false) {
+      if (preg_match('/^[a-zA-Z0-9,-]+$/', $HTTP_POST_VARS[tep_session_name()]) == false) {
         unset($HTTP_POST_VARS[tep_session_name()]);
 
         $sane_session_id = false;
       }
     } elseif (isset($HTTP_COOKIE_VARS[tep_session_name()])) {
-      if (preg_match('/^[a-zA-Z0-9]+$/', $HTTP_COOKIE_VARS[tep_session_name()]) == false) {
+      if (preg_match('/^[a-zA-Z0-9,-]+$/', $HTTP_COOKIE_VARS[tep_session_name()]) == false) {
         $session_data = session_get_cookie_params();
 
         setcookie(tep_session_name(), '', time()-42000, $session_data['path'], $session_data['domain']);
@@ -94,6 +99,8 @@
       tep_redirect(tep_href_link(FILENAME_DEFAULT, '', 'NONSSL', false));
     }
 
+    register_shutdown_function('session_write_close');
+
     return session_start();
   }
 
@@ -101,12 +108,11 @@
     if (PHP_VERSION < 4.3) {
       return session_register($variable);
     } else {
-      if (isset($GLOBALS[$variable])) {
-        $_SESSION[$variable] =& $GLOBALS[$variable];
-      } else {
-        $_SESSION[$variable] = null;
+      if (!isset($GLOBALS[$variable])) {
+        $GLOBALS[$variable] = null;
       }
-      $GLOBALS[$variable] =& $_SESSION[$variable];
+
+      $_SESSION[$variable] =& $GLOBALS[$variable];
     }
 
     return false;
@@ -116,7 +122,7 @@
     if (PHP_VERSION < 4.3) {
       return session_is_registered($variable);
     } else {
-      return isset($_SESSION[$variable]);
+      return isset($_SESSION) && array_key_exists($variable, $_SESSION);
     }
   }
 

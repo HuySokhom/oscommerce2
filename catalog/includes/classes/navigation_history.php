@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: navigation_history.php,v 1.6 2003/06/09 22:23:43 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -109,28 +109,30 @@
           echo $key . '=' . $value . '&';
         }
         if (sizeof($this->path[$i]['post']) > 0) {
-          echo '<br>';
+          echo '<br />';
           while (list($key, $value) = each($this->path[$i]['post'])) {
-            echo '&nbsp;&nbsp;<b>' . $key . '=' . $value . '</b><br>';
+            echo '&nbsp;&nbsp;<strong>' . $key . '=' . $value . '</strong><br />';
           }
         }
-        echo '<br>';
+        echo '<br />';
       }
 
       if (sizeof($this->snapshot) > 0) {
-        echo '<br><br>';
+        echo '<br /><br />';
 
-        echo $this->snapshot['mode'] . ' ' . $this->snapshot['page'] . '?' . tep_array_to_string($this->snapshot['get'], array(tep_session_name())) . '<br>';
+        echo $this->snapshot['mode'] . ' ' . $this->snapshot['page'] . '?' . tep_array_to_string($this->snapshot['get'], array(tep_session_name())) . '<br />';
       }
     }
 
     function filter_parameters($parameters) {
       $clean = array();
 
-      reset($parameters);
-      while (list($key, $value) = each($parameters)) {
-        if (strpos($key, '_nh-dns') < 1) {
-          $clean[$key] = $value;
+      if (is_array($parameters)) {
+        reset($parameters);
+        while (list($key, $value) = each($parameters)) {
+          if (strpos($key, '_nh-dns') < 1) {
+            $clean[$key] = $value;
+          }
         }
       }
 

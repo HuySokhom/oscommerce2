@@ -1,6 +1,6 @@
 <?php
 /*
-  $Id: phplot.php,v 1.2 2003/06/20 16:23:08 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
@@ -517,7 +517,7 @@ class PHPlot{
 
 				break;
 			default:
-				$this->PrintError('Please select an image type!<br>');
+				$this->PrintError('Please select an image type!<br />');
 				break;
 		}
 		ImageDestroy($this->img);
@@ -672,12 +672,12 @@ class PHPlot{
 				$which_xpos, $which_ypos, $which_color, $which_font, $which_text); 
 		} else { 
 			if ($which_valign == 'top') { 
-				$which_ypos = $which_ypos - ImageFontHeight($which_font);
+				$which_ypos = $which_ypos - ImageFontHeight((int)$which_font);
 			}
-			$which_text = ereg_replace("\r","",$which_text);
-			$str = split("\n",$which_text); //multiple lines submitted by Remi Ricard
-			$height = ImageFontHeight($which_font);
-			$width = ImageFontWidth($which_font);
+			$which_text = preg_replace("/\r/","",$which_text);
+			$str = explode("\n",$which_text); //multiple lines submitted by Remi Ricard
+			$height = ImageFontHeight((int)$which_font);
+			$width = ImageFontWidth((int)$which_font);
 			if ($which_angle == 90) {  //Vertical Code Submitted by Marlin Viss
 				for($i=0;$i<count($str);$i++) { 
 					ImageStringUp($this->img, $which_font, ($i*$height + $which_xpos), $which_ypos, $str[$i], $which_color);
@@ -686,9 +686,9 @@ class PHPlot{
 				for($i=0;$i<count($str);$i++) { 
 					if ($which_halign == 'center') { 
                     	$xpos = $which_xpos - strlen($str[$i]) * $width/2;
- 						ImageString($this->img, $which_font, $xpos, ($i*$height + $which_ypos), $str[$i], $which_color);
+ 						ImageString($this->img, (int)$which_font, $xpos, ($i*$height + $which_ypos), $str[$i], $which_color);
 					} else { 
-						ImageString($this->img, $which_font, $which_xpos, ($i*$height + $which_ypos), $str[$i], $which_color); 
+						ImageString($this->img, (int)$which_font, $which_xpos, ($i*$height + $which_ypos), $str[$i], $which_color);
 					}
 				} 
 			}
@@ -779,7 +779,7 @@ class PHPlot{
 	function SetPlotType($which_pt) {
 		$accepted = "bars,lines,linepoints,area,points,pie,thinbarline";
 		$asked = trim($which_pt);
-		if (eregi($asked, $accepted)) {
+		if (preg_match('/' . $asked .'/i', $accepted)) {
 			$this->plot_type = $which_pt;
 			return true;
 		} else {
@@ -936,7 +936,7 @@ class PHPlot{
 		// It thus depends on the current character size, set by SetCharacterHeight().
 		/////////////////////////////////////////////////////////////////
 
-		$str = split("\n",$this->title_txt); 
+		$str = explode("\n",$this->title_txt);
 		$nbLines = count($str); 
 
 		if ($this->use_ttf == 1) {
@@ -1077,7 +1077,7 @@ class PHPlot{
 
 	function PrintError($error_message) {
 	// prints the error message to stdout and die
-		echo "<p><b>Fatal error</b>: $error_message<p>";
+		echo "<p><strong>Fatal error</strong>: $error_message<p>";
 		die;
 	}
 
@@ -1165,7 +1165,7 @@ class PHPlot{
 		}
 
 		$this->y_label_width = $size[0] * 2;
-//echo "SYLW: $this->y_label_width<br>";
+//echo "SYLW: $this->y_label_width<br />";
 //exit;
 
 		$this->SetMargins();
@@ -1949,7 +1949,7 @@ class PHPlot{
 			$i = 0;
 
 			while (list($key, $val) = each($row)) {
-//echo "$key, $i, $val<br>";
+//echo "$key, $i, $val<br />";
 				if ($key == 0) {
 					$lab = $val;
 				} elseif ($key == 1) {
@@ -1968,7 +1968,7 @@ class PHPlot{
 					$barcol = $this->ndx_data_color[$color_index];
 					$error_barcol = $this->ndx_error_bar_color[$color_index];
 
-//echo "start = $start_lines<br>";
+//echo "start = $start_lines<br />";
 					if ($start_lines == 1) {
 						for ($width = 0; $width < $this->line_width; $width++) {
 							ImageLine($this->img, $x_now_pixels, $y_now_pixels + $width,
@@ -2214,7 +2214,7 @@ class PHPlot{
 		while (list(, $row) = each($posarr)) {
 			if ($color_index >= count($this->ndx_data_color)) $color_index=0;
 			$barcol = $this->ndx_data_color[$color_index];
-//echo "$row[0],$row[1],$row[2],$row[3],$row[4],$row[5],$row[6],$row[7],$row[8],$row[9],$row[10],$row[11],$row[12], $barcol<br>";
+//echo "$row[0],$row[1],$row[2],$row[3],$row[4],$row[5],$row[6],$row[7],$row[8],$row[9],$row[10],$row[11],$row[12], $barcol<br />";
 			ImageFilledPolygon($this->img, $row, (count($row)) / 2, $barcol);
 			$color_index++;
 		}
@@ -2266,7 +2266,7 @@ class PHPlot{
 		while (list(, $row) = each($posarr)) {
 			if ($color_index >= count($this->ndx_data_color)) $color_index=0;
 			$barcol = $this->ndx_data_color[$color_index];
-//echo "$row[0],$row[1],$row[2],$row[3],$row[4],$row[5],$row[6],$row[7],$row[8],$row[9],$row[10],$row[11],$row[12], $barcol<br>";
+//echo "$row[0],$row[1],$row[2],$row[3],$row[4],$row[5],$row[6],$row[7],$row[8],$row[9],$row[10],$row[11],$row[12], $barcol<br />";
 			ImageFilledPolygon($this->img, $row, (count($row)) / 2, $barcol);
 			$color_index++;
 		}

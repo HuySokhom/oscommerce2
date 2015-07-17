@@ -1,16 +1,16 @@
 <?php
 /*
-  $Id: $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
 
-  Copyright (c) 2007 osCommerce
+  Copyright (c) 2008 osCommerce
 
   Released under the GNU General Public License
 */
 ?>
-<br>
+<br />
 <table border="0" width="100%" cellspacing="0" cellpadding="2">
   <tr>
     <td align="center" class="smallText">
@@ -30,7 +30,7 @@
   copyright announcement.
 */
 ?>
-osCommerce Online Merchant Copyright &copy; 2007 <a href="http://www.oscommerce.com" target="_blank">osCommerce</a><br>
+osCommerce Online Merchant Copyright &copy; 2010 <a href="http://www.oscommerce.com" target="_blank">osCommerce</a><br />
 osCommerce provides no warranty and is redistributable under the <a href="http://www.fsf.org/licenses/gpl.txt" target="_blank">GNU General Public License</a>
     </td>
   </tr>

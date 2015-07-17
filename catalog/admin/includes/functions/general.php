@@ -1,14 +1,26 @@
 <?php
 /*
-  $Id: general.php,v 1.160 2003/07/12 08:32:47 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
 
-  Copyright (c) 2007 osCommerce
+  Copyright (c) 2013 osCommerce
 
   Released under the GNU General Public License
 */
+
+////
+// Get the installed version number
+  function tep_get_version() {
+    static $v;
+
+    if (!isset($v)) {
+      $v = trim(implode('', file(DIR_FS_CATALOG . 'includes/version.php')));
+    }
+
+    return $v;
+  }
 
 ////
 // Redirect to another page or site
@@ -17,6 +29,10 @@
 
     if ( (strstr($url, "\n") != false) || (strstr($url, "\r") != false) ) {
       tep_redirect(tep_href_link(FILENAME_DEFAULT, '', 'NONSSL', false));
+    }
+
+    if ( strpos($url, '&amp;') !== false ) {
+      $url = str_replace('&amp;', '&', $url);
     }
 
     header('Location: ' . $url);
@@ -52,9 +68,9 @@
   }
 
   function tep_sanitize_string($string) {
-    $string = ereg_replace(' +', ' ', $string);
-
-    return preg_replace("/[<>]/", '_', $string);
+    $patterns = array ('/ +/','/[<>]/');
+    $replace = array (' ', '_');
+    return preg_replace($patterns, $replace, trim($string));
   }
 
   function tep_customers_name($customers_id) {
@@ -146,7 +162,7 @@
     if (@date('Y', mktime($hour, $minute, $second, $month, $day, $year)) == $year) {
       return date(DATE_FORMAT, mktime($hour, $minute, $second, $month, $day, $year));
     } else {
-      return ereg_replace('2037' . '$', $year, date(DATE_FORMAT, mktime($hour, $minute, $second, $month, $day, 2037)));
+      return preg_replace('/2037$/', $year, date(DATE_FORMAT, mktime($hour, $minute, $second, $month, $day, 2037)));
     }
 
   }
@@ -211,6 +227,27 @@
 
     return $select_string;
   }
+
+  function tep_format_system_info_array($array) {
+
+    $output = '';
+    foreach ($array as $section => $child) {
+      $output .= '[' . $section . ']' . "\n";
+      foreach ($child as $variable => $value) {
+        if (is_array($value)) {
+          $output .= $variable . ' = ' . implode(',', $value) ."\n";
+        } else {
+          $output .= $variable . ' = ' . $value . "\n";
+        }
+      }
+
+    $output .= "\n";
+    }
+    return $output;
+
+  }
+
+
 
   function tep_options_name($options_id) {
     global $languages_id;
@@ -377,11 +414,11 @@
 
     if ($html) {
 // HTML Mode
-      $HR = '<hr>';
-      $hr = '<hr>';
+      $HR = '<hr />';
+      $hr = '<hr />';
       if ( ($boln == '') && ($eoln == "\n") ) { // Values not specified, use rational defaults
-        $CR = '<br>';
-        $cr = '<br>';
+        $CR = '<br />';
+        $cr = '<br />';
         $eoln = $cr;
       } else { // Use values supplied
         $CR = $eoln . $boln;
@@ -718,6 +755,18 @@
   }
 
 ////
+// Sets the status of a review
+  function tep_set_review_status($reviews_id, $status) {
+    if ($status == '1') {
+      return tep_db_query("update " . TABLE_REVIEWS . " set reviews_status = '1', last_modified = now() where reviews_id = '" . (int)$reviews_id . "'");
+    } elseif ($status == '0') {
+      return tep_db_query("update " . TABLE_REVIEWS . " set reviews_status = '0', last_modified = now() where reviews_id = '" . (int)$reviews_id . "'");
+    } else {
+      return -1;
+    }
+  }
+
+////
 // Sets the status of a product on special
   function tep_set_specials_status($specials_id, $status) {
     if ($status == '1') {
@@ -746,11 +795,11 @@
     for ($i=0, $n=sizeof($select_array); $i<$n; $i++) {
       $name = ((tep_not_null($key)) ? 'configuration[' . $key . ']' : 'configuration_value');
 
-      $string .= '<br><input type="radio" name="' . $name . '" value="' . $select_array[$i] . '"';
+      $string .= '<br /><input type="radio" name="' . $name . '" value="' . $select_array[$i] . '"';
 
-      if ($key_value == $select_array[$i]) $string .= ' CHECKED';
+      if ($key_value == $select_array[$i]) $string .= ' checked="checked"';
 
-      $string .= '> ' . $select_array[$i];
+      $string .= ' /> ' . $select_array[$i];
     }
 
     return $string;
@@ -762,9 +811,9 @@
     reset($select_array);
     while (list($key, $value) = each($select_array)) {
       if (is_int($key)) $key = $value;
-      $string .= '<br><input type="radio" name="configuration[' . $key_name . ']" value="' . $key . '"';
-      if ($key_value == $key) $string .= ' CHECKED';
-      $string .= '> ' . $value;
+      $string .= '<br /><input type="radio" name="configuration[' . $key_name . ']" value="' . $key . '"';
+      if ($key_value == $key) $string .= ' checked="checked"';
+      $string .= ' /> ' . $value;
     }
 
     return $string;
@@ -778,21 +827,47 @@
     $db_query = tep_db_query("select now() as datetime");
     $db = tep_db_fetch_array($db_query);
 
-    list($system, $host, $kernel) = preg_split('/[\s,]+/', @exec('uname -a'), 5);
+    @list($system, $host, $kernel) = preg_split('/[\s,]+/', @exec('uname -a'), 5);
 
-    return array('date' => tep_datetime_short(date('Y-m-d H:i:s')),
-                 'system' => $system,
-                 'kernel' => $kernel,
-                 'host' => $host,
-                 'ip' => gethostbyname($host),
-                 'uptime' => @exec('uptime'),
-                 'http_server' => $HTTP_SERVER_VARS['SERVER_SOFTWARE'],
-                 'php' => PHP_VERSION,
-                 'zend' => (function_exists('zend_version') ? zend_version() : ''),
-                 'db_server' => DB_SERVER,
-                 'db_ip' => gethostbyname(DB_SERVER),
-                 'db_version' => 'MySQL ' . (function_exists('mysql_get_server_info') ? mysql_get_server_info() : ''),
-                 'db_date' => tep_datetime_short($db['datetime']));
+    $data = array();
+
+    $data['oscommerce']  = array('version' => tep_get_version());
+
+    $data['system'] = array('date' => date('Y-m-d H:i:s O T'),
+                            'os' => PHP_OS,
+                            'kernel' => $kernel,
+                            'uptime' => @exec('uptime'),
+                            'http_server' => $HTTP_SERVER_VARS['SERVER_SOFTWARE']);
+
+    $data['mysql']  = array('version' => tep_db_get_server_info(),
+                            'date' => $db['datetime']);
+
+    $data['php']    = array('version' => PHP_VERSION,
+                            'zend' => zend_version(),
+                            'sapi' => PHP_SAPI,
+                            'int_size'	=> defined('PHP_INT_SIZE') ? PHP_INT_SIZE : '',
+                            'safe_mode'	=> (int) @ini_get('safe_mode'),
+                            'open_basedir' => (int) @ini_get('open_basedir'),
+                            'memory_limit' => @ini_get('memory_limit'),
+                            'error_reporting' => error_reporting(),
+                            'display_errors' => (int)@ini_get('display_errors'),
+                            'allow_url_fopen' => (int) @ini_get('allow_url_fopen'),
+                            'allow_url_include' => (int) @ini_get('allow_url_include'),
+                            'file_uploads' => (int) @ini_get('file_uploads'),
+                            'upload_max_filesize' => @ini_get('upload_max_filesize'),
+                            'post_max_size' => @ini_get('post_max_size'),
+                            'disable_functions' => @ini_get('disable_functions'),
+                            'disable_classes' => @ini_get('disable_classes'),
+                            'enable_dl'	=> (int) @ini_get('enable_dl'),
+                            'magic_quotes_gpc' => (int) @ini_get('magic_quotes_gpc'),
+                            'register_globals' => (int) @ini_get('register_globals'),
+                            'filter.default'   => @ini_get('filter.default'),
+                            'zend.ze1_compatibility_mode' => (int) @ini_get('zend.ze1_compatibility_mode'),
+                            'unicode.semantics' => (int) @ini_get('unicode.semantics'),
+                            'zend_thread_safty'	=> (int) function_exists('zend_thread_id'),
+                            'extensions' => get_loaded_extensions());
+
+    return $data;
   }
 
   function tep_generate_category_path($id, $from = 'category', $categories_array = '', $index = 0) {
@@ -831,9 +906,9 @@
       for ($j=0, $k=sizeof($calculated_category_path[$i]); $j<$k; $j++) {
         $calculated_category_path_string .= $calculated_category_path[$i][$j]['text'] . '&nbsp;&gt;&nbsp;';
       }
-      $calculated_category_path_string = substr($calculated_category_path_string, 0, -16) . '<br>';
+      $calculated_category_path_string = substr($calculated_category_path_string, 0, -16) . '<br />';
     }
-    $calculated_category_path_string = substr($calculated_category_path_string, 0, -4);
+    $calculated_category_path_string = substr($calculated_category_path_string, 0, -6);
 
     if (strlen($calculated_category_path_string) < 1) $calculated_category_path_string = TEXT_TOP;
 
@@ -847,9 +922,9 @@
       for ($j=0, $k=sizeof($calculated_category_path[$i]); $j<$k; $j++) {
         $calculated_category_path_string .= $calculated_category_path[$i][$j]['id'] . '_';
       }
-      $calculated_category_path_string = substr($calculated_category_path_string, 0, -1) . '<br>';
+      $calculated_category_path_string = substr($calculated_category_path_string, 0, -1) . '<br />';
     }
-    $calculated_category_path_string = substr($calculated_category_path_string, 0, -4);
+    $calculated_category_path_string = substr($calculated_category_path_string, 0, -6);
 
     if (strlen($calculated_category_path_string) < 1) $calculated_category_path_string = TEXT_TOP;
 
@@ -890,6 +965,22 @@
       if (file_exists(DIR_FS_CATALOG_IMAGES . $product_image['products_image'])) {
         @unlink(DIR_FS_CATALOG_IMAGES . $product_image['products_image']);
       }
+    }
+
+    $product_images_query = tep_db_query("select image from " . TABLE_PRODUCTS_IMAGES . " where products_id = '" . (int)$product_id . "'");
+    if (tep_db_num_rows($product_images_query)) {
+      while ($product_images = tep_db_fetch_array($product_images_query)) {
+        $duplicate_image_query = tep_db_query("select count(*) as total from " . TABLE_PRODUCTS_IMAGES . " where image = '" . tep_db_input($product_images['image']) . "'");
+        $duplicate_image = tep_db_fetch_array($duplicate_image_query);
+
+        if ($duplicate_image['total'] < 2) {
+          if (file_exists(DIR_FS_CATALOG_IMAGES . $product_images['image'])) {
+            @unlink(DIR_FS_CATALOG_IMAGES . $product_images['image']);
+          }
+        }
+      }
+
+      tep_db_query("delete from " . TABLE_PRODUCTS_IMAGES . " where products_id = '" . (int)$product_id . "'");
     }
 
     tep_db_query("delete from " . TABLE_SPECIALS . " where products_id = '" . (int)$product_id . "'");
@@ -938,8 +1029,8 @@
               $cached_file = $cache_blocks[$i]['file'];
               $languages = tep_get_languages();
               for ($j=0, $k=sizeof($languages); $j<$k; $j++) {
-                $cached_file_unlink = ereg_replace('-language', '-' . $languages[$j]['directory'], $cached_file);
-                if (ereg('^' . $cached_file_unlink, $cache_file)) {
+                $cached_file_unlink = preg_replace('/-language/', '-' . $languages[$j]['directory'], $cached_file);
+                if (preg_match('/^' . $cached_file_unlink . '/', $cache_file)) {
                   @unlink(DIR_FS_CACHE . $cache_file);
                 }
               }
@@ -950,7 +1041,7 @@
           $cached_file = $cache_blocks[$i]['file'];
           $languages = tep_get_languages();
           for ($i=0, $n=sizeof($languages); $i<$n; $i++) {
-            $cached_file = ereg_replace('-language', '-' . $languages[$i]['directory'], $cached_file);
+            $cached_file = preg_replace('/-language/', '-' . $languages[$i]['directory'], $cached_file);
             @unlink(DIR_FS_CACHE . $cached_file);
           }
         }
@@ -1010,7 +1101,7 @@
       $dir = dir($source);
       while ($file = $dir->read()) {
         if ( ($file != '.') && ($file != '..') ) {
-          if (is_writeable($source . '/' . $file)) {
+          if (tep_is_writable($source . '/' . $file)) {
             tep_remove($source . '/' . $file);
           } else {
             $messageStack->add(sprintf(ERROR_FILE_NOT_REMOVEABLE, $source . '/' . $file), 'error');
@@ -1020,14 +1111,14 @@
       }
       $dir->close();
 
-      if (is_writeable($source)) {
+      if (tep_is_writable($source)) {
         rmdir($source);
       } else {
         $messageStack->add(sprintf(ERROR_DIRECTORY_NOT_REMOVEABLE, $source), 'error');
         $tep_remove_error = true;
       }
     } else {
-      if (is_writeable($source)) {
+      if (tep_is_writable($source)) {
         unlink($source);
       } else {
         $messageStack->add(sprintf(ERROR_FILE_NOT_REMOVEABLE, $source), 'error');
@@ -1123,12 +1214,7 @@
 ////
 // Wrapper function for round() for php3 compatibility
   function tep_round($value, $precision) {
-    if (PHP_VERSION < 4) {
-      $exp = pow(10, $precision);
-      return round($value * $exp) / $exp;
-    } else {
-      return round($value, $precision);
-    }
+    return round($value, $precision);
   }
 
 ////
@@ -1178,23 +1264,12 @@
 // Returns the tax rate for a tax class
 // TABLES: tax_rates
   function tep_get_tax_rate_value($class_id) {
-    $tax_query = tep_db_query("select SUM(tax_rate) as tax_rate from " . TABLE_TAX_RATES . " where tax_class_id = '" . (int)$class_id . "' group by tax_priority");
-    if (tep_db_num_rows($tax_query)) {
-      $tax_multiplier = 0;
-      while ($tax = tep_db_fetch_array($tax_query)) {
-        $tax_multiplier += $tax['tax_rate'];
-      }
-      return $tax_multiplier;
-    } else {
-      return 0;
-    }
+    return tep_get_tax_rate($class_id, -1, -1);
   }
 
   function tep_call_function($function, $parameter, $object = '') {
     if ($object == '') {
       return call_user_func($function, $parameter);
-    } elseif (PHP_VERSION < 4) {
-      return call_user_method($function, $object, $parameter);
     } else {
       return call_user_func(array($object, $function), $parameter);
     }
@@ -1257,9 +1332,12 @@
   function tep_rand($min = null, $max = null) {
     static $seeded;
 
-    if (!$seeded) {
-      mt_srand((double)microtime()*1000000);
+    if (!isset($seeded)) {
       $seeded = true;
+
+      if ( (PHP_VERSION < '4.2.0') ) {
+        mt_srand((double)microtime()*1000000);
+      }
     }
 
     if (isset($min) && isset($max)) {
@@ -1276,7 +1354,7 @@
 // nl2br() prior PHP 4.2.0 did not convert linefeeds on all OSs (it only converted \n)
   function tep_convert_linefeeds($from, $to, $string) {
     if ((PHP_VERSION < "4.0.5") && is_array($from)) {
-      return ereg_replace('(' . implode('|', $from) . ')', $to, $string);
+      return preg_replace('/(' . implode('|', $from) . ')/', $to, $string);
     } else {
       return str_replace($from, $to, $string);
     }
@@ -1302,5 +1380,96 @@
     }
 
     return $tmp_array;
+  }
+
+  function tep_validate_ip_address($ip_address) {
+    if (function_exists('filter_var') && defined('FILTER_VALIDATE_IP')) {
+      return filter_var($ip_address, FILTER_VALIDATE_IP, array('flags' => FILTER_FLAG_IPV4));
+    }
+
+    if (preg_match('/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/', $ip_address)) {
+      $parts = explode('.', $ip_address);
+
+      foreach ($parts as $ip_parts) {
+        if ( (intval($ip_parts) > 255) || (intval($ip_parts) < 0) ) {
+          return false; // number is not within 0-255
+        }
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  function tep_get_ip_address() {
+    global $HTTP_SERVER_VARS;
+
+    $ip_address = null;
+    $ip_addresses = array();
+
+    if (isset($HTTP_SERVER_VARS['HTTP_X_FORWARDED_FOR']) && !empty($HTTP_SERVER_VARS['HTTP_X_FORWARDED_FOR'])) {
+      foreach ( array_reverse(explode(',', $HTTP_SERVER_VARS['HTTP_X_FORWARDED_FOR'])) as $x_ip ) {
+        $x_ip = trim($x_ip);
+
+        if (tep_validate_ip_address($x_ip)) {
+          $ip_addresses[] = $x_ip;
+        }
+      }
+    }
+
+    if (isset($HTTP_SERVER_VARS['HTTP_CLIENT_IP']) && !empty($HTTP_SERVER_VARS['HTTP_CLIENT_IP'])) {
+      $ip_addresses[] = $HTTP_SERVER_VARS['HTTP_CLIENT_IP'];
+    }
+
+    if (isset($HTTP_SERVER_VARS['HTTP_X_CLUSTER_CLIENT_IP']) && !empty($HTTP_SERVER_VARS['HTTP_X_CLUSTER_CLIENT_IP'])) {
+      $ip_addresses[] = $HTTP_SERVER_VARS['HTTP_X_CLUSTER_CLIENT_IP'];
+    }
+
+    if (isset($HTTP_SERVER_VARS['HTTP_PROXY_USER']) && !empty($HTTP_SERVER_VARS['HTTP_PROXY_USER'])) {
+      $ip_addresses[] = $HTTP_SERVER_VARS['HTTP_PROXY_USER'];
+    }
+
+    $ip_addresses[] = $HTTP_SERVER_VARS['REMOTE_ADDR'];
+
+    foreach ( $ip_addresses as $ip ) {
+      if (!empty($ip) && tep_validate_ip_address($ip)) {
+        $ip_address = $ip;
+        break;
+      }
+    }
+
+    return $ip_address;
+  }
+
+////
+// Wrapper function for is_writable() for Windows compatibility
+  function tep_is_writable($file) {
+    if (strtolower(substr(PHP_OS, 0, 3)) === 'win') {
+      if (file_exists($file)) {
+        $file = realpath($file);
+        if (is_dir($file)) {
+          $result = @tempnam($file, 'osc');
+          if (is_string($result) && file_exists($result)) {
+            unlink($result);
+            return (strpos($result, $file) === 0) ? true : false;
+          }
+        } else {
+          $handle = @fopen($file, 'r+');
+          if (is_resource($handle)) {
+            fclose($handle);
+            return true;
+          }
+        }
+      } else{
+        $dir = dirname($file);
+        if (file_exists($dir) && is_dir($dir) && tep_is_writable($dir)) {
+          return true;
+        }
+      }
+      return false;
+    } else {
+      return is_writable($file);
+    }
   }
 ?>

@@ -1,19 +1,31 @@
 <?php
 /*
-  $Id: general.php,v 1.231 2003/07/09 01:15:48 hpdl Exp $
+  $Id$
 
   osCommerce, Open Source E-Commerce Solutions
   http://www.oscommerce.com
 
-  Copyright (c) 2007 osCommerce
+  Copyright (c) 2013 osCommerce
 
   Released under the GNU General Public License
 */
 
 ////
+// Get the installed version number
+  function tep_get_version() {
+    static $v;
+
+    if (!isset($v)) {
+      $v = trim(implode('', file(DIR_FS_CATALOG . 'includes/version.php')));
+    }
+
+    return $v;
+  }
+
+////
 // Stop from parsing any further PHP code
+// v2.3.3.1 now closes the session through a registered shutdown function
   function tep_exit() {
-   tep_session_close();
    exit();
   }
 
@@ -25,9 +37,13 @@
     }
 
     if ( (ENABLE_SSL == true) && (getenv('HTTPS') == 'on') ) { // We are loading an SSL page
-      if (substr($url, 0, strlen(HTTP_SERVER)) == HTTP_SERVER) { // NONSSL url
-        $url = HTTPS_SERVER . substr($url, strlen(HTTP_SERVER)); // Change it to SSL
+      if (substr($url, 0, strlen(HTTP_SERVER . DIR_WS_HTTP_CATALOG)) == HTTP_SERVER . DIR_WS_HTTP_CATALOG) { // NONSSL url
+        $url = HTTPS_SERVER . DIR_WS_HTTPS_CATALOG . substr($url, strlen(HTTP_SERVER . DIR_WS_HTTP_CATALOG)); // Change it to SSL
       }
+    }
+
+    if ( strpos($url, '&amp;') !== false ) {
+      $url = str_replace('&amp;', '&', $url);
     }
 
     header('Location: ' . $url);
@@ -58,9 +74,9 @@
   }
 
   function tep_sanitize_string($string) {
-    $string = ereg_replace(' +', ' ', trim($string));
-
-    return preg_replace("/[<>]/", '_', $string);
+    $patterns = array ('/ +/','/[<>]/');
+    $replace = array (' ', '_');
+    return preg_replace($patterns, $replace, trim($string));
   }
 
 ////
@@ -96,7 +112,7 @@
 // Return a product's special price (returns nothing if there is no offer)
 // TABLES: products
   function tep_get_products_special_price($product_id) {
-    $product_query = tep_db_query("select specials_new_products_price from " . TABLE_SPECIALS . " where products_id = '" . (int)$product_id . "' and status");
+    $product_query = tep_db_query("select specials_new_products_price from " . TABLE_SPECIALS . " where products_id = '" . (int)$product_id . "' and status = 1");
     $product = tep_db_fetch_array($product_query);
 
     return $product['specials_new_products_price'];
@@ -160,7 +176,7 @@
     if (is_array($HTTP_GET_VARS) && (sizeof($HTTP_GET_VARS) > 0)) {
       reset($HTTP_GET_VARS);
       while (list($key, $value) = each($HTTP_GET_VARS)) {
-        if ( (strlen($value) > 0) && ($key != tep_session_name()) && ($key != 'error') && (!in_array($key, $exclude_array)) && ($key != 'x') && ($key != 'y') ) {
+        if ( is_string($value) && (strlen($value) > 0) && ($key != tep_session_name()) && ($key != 'error') && (!in_array($key, $exclude_array)) && ($key != 'x') && ($key != 'y') ) {
           $get_url .= $key . '=' . rawurlencode(stripslashes($value)) . '&';
         }
       }
@@ -311,6 +327,7 @@
 // TABLES: tax_rates, zones_to_geo_zones
   function tep_get_tax_rate($class_id, $country_id = -1, $zone_id = -1) {
     global $customer_zone_id, $customer_country_id;
+    static $tax_rates = array();
 
     if ( ($country_id == -1) && ($zone_id == -1) ) {
       if (!tep_session_is_registered('customer_id')) {
@@ -322,34 +339,45 @@
       }
     }
 
-    $tax_query = tep_db_query("select sum(tax_rate) as tax_rate from " . TABLE_TAX_RATES . " tr left join " . TABLE_ZONES_TO_GEO_ZONES . " za on (tr.tax_zone_id = za.geo_zone_id) left join " . TABLE_GEO_ZONES . " tz on (tz.geo_zone_id = tr.tax_zone_id) where (za.zone_country_id is null or za.zone_country_id = '0' or za.zone_country_id = '" . (int)$country_id . "') and (za.zone_id is null or za.zone_id = '0' or za.zone_id = '" . (int)$zone_id . "') and tr.tax_class_id = '" . (int)$class_id . "' group by tr.tax_priority");
-    if (tep_db_num_rows($tax_query)) {
-      $tax_multiplier = 1.0;
-      while ($tax = tep_db_fetch_array($tax_query)) {
-        $tax_multiplier *= 1.0 + ($tax['tax_rate'] / 100);
+    if (!isset($tax_rates[$class_id][$country_id][$zone_id]['rate'])) {
+      $tax_query = tep_db_query("select sum(tax_rate) as tax_rate from " . TABLE_TAX_RATES . " tr left join " . TABLE_ZONES_TO_GEO_ZONES . " za on (tr.tax_zone_id = za.geo_zone_id) left join " . TABLE_GEO_ZONES . " tz on (tz.geo_zone_id = tr.tax_zone_id) where (za.zone_country_id is null or za.zone_country_id = '0' or za.zone_country_id = '" . (int)$country_id . "') and (za.zone_id is null or za.zone_id = '0' or za.zone_id = '" . (int)$zone_id . "') and tr.tax_class_id = '" . (int)$class_id . "' group by tr.tax_priority");
+      if (tep_db_num_rows($tax_query)) {
+        $tax_multiplier = 1.0;
+        while ($tax = tep_db_fetch_array($tax_query)) {
+          $tax_multiplier *= 1.0 + ($tax['tax_rate'] / 100);
+        }
+
+        $tax_rates[$class_id][$country_id][$zone_id]['rate'] = ($tax_multiplier - 1.0) * 100;
+      } else {
+        $tax_rates[$class_id][$country_id][$zone_id]['rate'] = 0;
       }
-      return ($tax_multiplier - 1.0) * 100;
-    } else {
-      return 0;
     }
+
+    return $tax_rates[$class_id][$country_id][$zone_id]['rate'];
   }
 
 ////
 // Return the tax description for a zone / class
 // TABLES: tax_rates;
   function tep_get_tax_description($class_id, $country_id, $zone_id) {
-    $tax_query = tep_db_query("select tax_description from " . TABLE_TAX_RATES . " tr left join " . TABLE_ZONES_TO_GEO_ZONES . " za on (tr.tax_zone_id = za.geo_zone_id) left join " . TABLE_GEO_ZONES . " tz on (tz.geo_zone_id = tr.tax_zone_id) where (za.zone_country_id is null or za.zone_country_id = '0' or za.zone_country_id = '" . (int)$country_id . "') and (za.zone_id is null or za.zone_id = '0' or za.zone_id = '" . (int)$zone_id . "') and tr.tax_class_id = '" . (int)$class_id . "' order by tr.tax_priority");
-    if (tep_db_num_rows($tax_query)) {
-      $tax_description = '';
-      while ($tax = tep_db_fetch_array($tax_query)) {
-        $tax_description .= $tax['tax_description'] . ' + ';
-      }
-      $tax_description = substr($tax_description, 0, -3);
+    static $tax_rates = array();
 
-      return $tax_description;
-    } else {
-      return TEXT_UNKNOWN_TAX_RATE;
+    if (!isset($tax_rates[$class_id][$country_id][$zone_id]['description'])) {
+      $tax_query = tep_db_query("select tax_description from " . TABLE_TAX_RATES . " tr left join " . TABLE_ZONES_TO_GEO_ZONES . " za on (tr.tax_zone_id = za.geo_zone_id) left join " . TABLE_GEO_ZONES . " tz on (tz.geo_zone_id = tr.tax_zone_id) where (za.zone_country_id is null or za.zone_country_id = '0' or za.zone_country_id = '" . (int)$country_id . "') and (za.zone_id is null or za.zone_id = '0' or za.zone_id = '" . (int)$zone_id . "') and tr.tax_class_id = '" . (int)$class_id . "' order by tr.tax_priority");
+      if (tep_db_num_rows($tax_query)) {
+        $tax_description = '';
+        while ($tax = tep_db_fetch_array($tax_query)) {
+          $tax_description .= $tax['tax_description'] . ' + ';
+        }
+        $tax_description = substr($tax_description, 0, -3);
+
+        $tax_rates[$class_id][$country_id][$zone_id]['description'] = $tax_description;
+      } else {
+        $tax_rates[$class_id][$country_id][$zone_id]['description'] = TEXT_UNKNOWN_TAX_RATE;
+      }
     }
+
+    return $tax_rates[$class_id][$country_id][$zone_id]['description'];
   }
 
 ////
@@ -455,11 +483,11 @@
 
     if ($html) {
 // HTML Mode
-      $HR = '<hr>';
-      $hr = '<hr>';
+      $HR = '<hr />';
+      $hr = '<hr />';
       if ( ($boln == '') && ($eoln == "\n") ) { // Values not specified, use rational defaults
-        $CR = '<br>';
-        $cr = '<br>';
+        $CR = '<br />';
+        $cr = '<br />';
         $eoln = $cr;
       } else { // Use values supplied
         $CR = $eoln . $boln;
@@ -492,6 +520,10 @@
 // Return a formatted address
 // TABLES: customers, address_book
   function tep_address_label($customers_id, $address_id = 1, $html = false, $boln = '', $eoln = "\n") {
+    if (is_array($address_id) && !empty($address_id)) {
+      return tep_address_format($address_id['address_format_id'], $address_id, $html, $boln, $eoln);
+    }
+
     $address_query = tep_db_query("select entry_firstname as firstname, entry_lastname as lastname, entry_company as company, entry_street_address as street_address, entry_suburb as suburb, entry_city as city, entry_postcode as postcode, entry_state as state, entry_zone_id as zone_id, entry_country_id as country_id from " . TABLE_ADDRESS_BOOK . " where customers_id = '" . (int)$customers_id . "' and address_book_id = '" . (int)$address_id . "'");
     $address = tep_db_fetch_array($address_query);
 
@@ -580,7 +612,7 @@
     if (@date('Y', mktime($hour, $minute, $second, $month, $day, $year)) == $year) {
       return date(DATE_FORMAT, mktime($hour, $minute, $second, $month, $day, $year));
     } else {
-      return ereg_replace('2037' . '$', $year, date(DATE_FORMAT, mktime($hour, $minute, $second, $month, $day, 2037)));
+      return preg_replace('/2037$/', $year, date(DATE_FORMAT, mktime($hour, $minute, $second, $month, $day, 2037)));
     }
   }
 
@@ -590,7 +622,7 @@
     $search_str = trim(strtolower($search_str));
 
 // Break up $search_str on whitespace; quoted string will be reconstructed later
-    $pieces = split('[[:space:]]+', $search_str);
+    $pieces = preg_split('/[[:space:]]+/', $search_str);
     $objects = array();
     $tmpstring = '';
     $flag = '';
@@ -631,14 +663,14 @@
 */
 
 // Add this word to the $tmpstring, starting the $tmpstring
-        $tmpstring = trim(ereg_replace('"', ' ', $pieces[$k]));
+        $tmpstring = trim(preg_replace('/"/', ' ', $pieces[$k]));
 
 // Check for one possible exception to the rule. That there is a single quoted word.
         if (substr($pieces[$k], -1 ) == '"') {
 // Turn the flag off for future iterations
           $flag = 'off';
 
-          $objects[] = trim($pieces[$k]);
+          $objects[] = trim(preg_replace('/"/', ' ', $pieces[$k]));
 
           for ($j=0; $j<count($post_objects); $j++) {
             $objects[] = $post_objects[$j];
@@ -681,7 +713,7 @@
    $piece onto the tail of the string, push the $tmpstring onto the $haves,
    kill the $tmpstring, turn the $flag "off", and return.
 */
-            $tmpstring .= ' ' . trim(ereg_replace('"', ' ', $pieces[$k]));
+            $tmpstring .= ' ' . trim(preg_replace('/"/', ' ', $pieces[$k]));
 
 // Push the $tmpstring onto the array of stuff to search for
             $objects[] = trim($tmpstring);
@@ -910,7 +942,7 @@
 // Return a product ID with attributes
   function tep_get_uprid($prid, $params) {
     if (is_numeric($prid)) {
-      $uprid = $prid;
+      $uprid = (int)$prid;
 
       if (is_array($params) && (sizeof($params) > 0)) {
         $attributes_check = true;
@@ -970,7 +1002,7 @@
     $pieces = explode('{', $uprid);
 
     if (is_numeric($pieces[0])) {
-      return $pieces[0];
+      return (int)$pieces[0];
     } else {
       return false;
     }
@@ -1008,7 +1040,7 @@
     if (SEND_EMAILS != 'true') return false;
 
     // Instantiate a new mail object
-    $message = new email(array('X-Mailer: osCommerce Mailer'));
+    $message = new email(array('X-Mailer: osCommerce'));
 
     // Build the text version
     $text = strip_tags($email_text);
@@ -1039,7 +1071,7 @@
 ////
 // Get the number of times a word/character is present in a string
   function tep_word_count($string, $needle) {
-    $temp_array = split($needle, $string);
+    $temp_array = preg_split('/' . $needle . '/', $string);
 
     return sizeof($temp_array);
   }
@@ -1049,12 +1081,12 @@
 
     if (empty($modules)) return $count;
 
-    $modules_array = split(';', $modules);
+    $modules_array = explode(';', $modules);
 
     for ($i=0, $n=sizeof($modules_array); $i<$n; $i++) {
       $class = substr($modules_array[$i], 0, strrpos($modules_array[$i], '.'));
 
-      if (is_object($GLOBALS[$class])) {
+      if (isset($GLOBALS[$class]) && is_object($GLOBALS[$class])) {
         if ($GLOBALS[$class]->enabled) {
           $count++;
         }
@@ -1073,25 +1105,46 @@
   }
 
   function tep_create_random_value($length, $type = 'mixed') {
-    if ( ($type != 'mixed') && ($type != 'chars') && ($type != 'digits')) return false;
+    if ( ($type != 'mixed') && ($type != 'chars') && ($type != 'digits')) $type = 'mixed';
 
-    $rand_value = '';
-    while (strlen($rand_value) < $length) {
-      if ($type == 'digits') {
-        $char = tep_rand(0,9);
-      } else {
-        $char = chr(tep_rand(0,255));
-      }
-      if ($type == 'mixed') {
-        if (eregi('^[a-z0-9]$', $char)) $rand_value .= $char;
-      } elseif ($type == 'chars') {
-        if (eregi('^[a-z]$', $char)) $rand_value .= $char;
-      } elseif ($type == 'digits') {
-        if (ereg('^[0-9]$', $char)) $rand_value .= $char;
-      }
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $digits = '0123456789';
+
+    $base = '';
+
+    if ( ($type == 'mixed') || ($type == 'chars') ) {
+      $base .= $chars;
     }
 
-    return $rand_value;
+    if ( ($type == 'mixed') || ($type == 'digits') ) {
+      $base .= $digits;
+    }
+
+    $value = '';
+
+    if (!class_exists('PasswordHash')) {
+      include(DIR_WS_CLASSES . 'passwordhash.php');
+    }
+
+    $hasher = new PasswordHash(10, true);
+
+    do {
+      $random = base64_encode($hasher->get_random_bytes($length));
+
+      for ($i = 0, $n = strlen($random); $i < $n; $i++) {
+        $char = substr($random, $i, 1);
+
+        if ( strpos($base, $char) !== false ) {
+          $value .= $char;
+        }
+      }
+    } while ( strlen($value) < $length );
+
+    if ( strlen($value) > $length ) {
+      $value = substr($value, 0, $length);
+    }
+
+    return $value;
   }
 
   function tep_array_to_string($array, $exclude = '', $equals = '=', $separator = '&') {
@@ -1204,8 +1257,11 @@
     static $seeded;
 
     if (!isset($seeded)) {
-      mt_srand((double)microtime()*1000000);
       $seeded = true;
+
+      if ( (PHP_VERSION < '4.2.0') ) {
+        mt_srand((double)microtime()*1000000);
+      }
     }
 
     if (isset($min) && isset($max)) {
@@ -1223,32 +1279,68 @@
     setcookie($name, $value, $expire, $path, (tep_not_null($domain) ? $domain : ''), $secure);
   }
 
+  function tep_validate_ip_address($ip_address) {
+    if (function_exists('filter_var') && defined('FILTER_VALIDATE_IP')) {
+      return filter_var($ip_address, FILTER_VALIDATE_IP, array('flags' => FILTER_FLAG_IPV4));
+    }
+
+    if (preg_match('/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/', $ip_address)) {
+      $parts = explode('.', $ip_address);
+
+      foreach ($parts as $ip_parts) {
+        if ( (intval($ip_parts) > 255) || (intval($ip_parts) < 0) ) {
+          return false; // number is not within 0-255
+        }
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
   function tep_get_ip_address() {
     global $HTTP_SERVER_VARS;
 
-    if (isset($HTTP_SERVER_VARS)) {
-      if (isset($HTTP_SERVER_VARS['HTTP_X_FORWARDED_FOR'])) {
-        $ip = $HTTP_SERVER_VARS['HTTP_X_FORWARDED_FOR'];
-      } elseif (isset($HTTP_SERVER_VARS['HTTP_CLIENT_IP'])) {
-        $ip = $HTTP_SERVER_VARS['HTTP_CLIENT_IP'];
-      } else {
-        $ip = $HTTP_SERVER_VARS['REMOTE_ADDR'];
-      }
-    } else {
-      if (getenv('HTTP_X_FORWARDED_FOR')) {
-        $ip = getenv('HTTP_X_FORWARDED_FOR');
-      } elseif (getenv('HTTP_CLIENT_IP')) {
-        $ip = getenv('HTTP_CLIENT_IP');
-      } else {
-        $ip = getenv('REMOTE_ADDR');
+    $ip_address = null;
+    $ip_addresses = array();
+
+    if (isset($HTTP_SERVER_VARS['HTTP_X_FORWARDED_FOR']) && !empty($HTTP_SERVER_VARS['HTTP_X_FORWARDED_FOR'])) {
+      foreach ( array_reverse(explode(',', $HTTP_SERVER_VARS['HTTP_X_FORWARDED_FOR'])) as $x_ip ) {
+        $x_ip = trim($x_ip);
+
+        if (tep_validate_ip_address($x_ip)) {
+          $ip_addresses[] = $x_ip;
+        }
       }
     }
 
-    return $ip;
+    if (isset($HTTP_SERVER_VARS['HTTP_CLIENT_IP']) && !empty($HTTP_SERVER_VARS['HTTP_CLIENT_IP'])) {
+      $ip_addresses[] = $HTTP_SERVER_VARS['HTTP_CLIENT_IP'];
+    }
+
+    if (isset($HTTP_SERVER_VARS['HTTP_X_CLUSTER_CLIENT_IP']) && !empty($HTTP_SERVER_VARS['HTTP_X_CLUSTER_CLIENT_IP'])) {
+      $ip_addresses[] = $HTTP_SERVER_VARS['HTTP_X_CLUSTER_CLIENT_IP'];
+    }
+
+    if (isset($HTTP_SERVER_VARS['HTTP_PROXY_USER']) && !empty($HTTP_SERVER_VARS['HTTP_PROXY_USER'])) {
+      $ip_addresses[] = $HTTP_SERVER_VARS['HTTP_PROXY_USER'];
+    }
+
+    $ip_addresses[] = $HTTP_SERVER_VARS['REMOTE_ADDR'];
+
+    foreach ( $ip_addresses as $ip ) {
+      if (!empty($ip) && tep_validate_ip_address($ip)) {
+        $ip_address = $ip;
+        break;
+      }
+    }
+
+    return $ip_address;
   }
 
   function tep_count_customer_orders($id = '', $check_session = true) {
-    global $customer_id;
+    global $customer_id, $languages_id;
 
     if (is_numeric($id) == false) {
       if (tep_session_is_registered('customer_id')) {
@@ -1264,7 +1356,7 @@
       }
     }
 
-    $orders_check_query = tep_db_query("select count(*) as total from " . TABLE_ORDERS . " where customers_id = '" . (int)$id . "'");
+    $orders_check_query = tep_db_query("select count(*) as total from " . TABLE_ORDERS . " o, " . TABLE_ORDERS_STATUS . " s where o.customers_id = '" . (int)$id . "' and o.orders_status = s.orders_status_id and s.language_id = '" . (int)$languages_id . "' and s.public_flag = '1'");
     $orders_check = tep_db_fetch_array($orders_check_query);
 
     return $orders_check['total'];
@@ -1296,7 +1388,7 @@
 // nl2br() prior PHP 4.2.0 did not convert linefeeds on all OSs (it only converted \n)
   function tep_convert_linefeeds($from, $to, $string) {
     if ((PHP_VERSION < "4.0.5") && is_array($from)) {
-      return ereg_replace('(' . implode('|', $from) . ')', $to, $string);
+      return preg_replace('/(' . implode('|', $from) . ')/', $to, $string);
     } else {
       return str_replace($from, $to, $string);
     }
